@@ -8,6 +8,9 @@ import MenuGrid from '@/components/MenuGrid';
 import RestaurantHeader from '@/components/RestaurantHeader';
 import { MenuThemeWrapper } from '@/components/MenuThemeWrapper';
 import { DishDetailDialog, DishDetail } from '@/components/DishDetailDialog';
+import { CartFAB } from '@/components/cart/CartFAB';
+import { CartDrawer } from '@/components/cart/CartDrawer';
+import { useCart } from '@/contexts/CartContext';
 
 // Lazy load filter - not needed for first paint
 const AllergenFilter = lazy(() => 
@@ -18,6 +21,8 @@ interface PublicMenuStaticProps {
   restaurant: any;
   categories: any[];
   onCategoryChange?: (categoryId: string) => void;
+  tableQrCodeId?: string;
+  orderingEnabled?: boolean;
 }
 
 interface Dish {
@@ -46,7 +51,9 @@ interface Dish {
  * Zero-delay menu renderer
  * Paints shell instantly, hydrates progressively
  */
-const PublicMenuStatic = ({ restaurant, categories, onCategoryChange }: PublicMenuStaticProps) => {
+const PublicMenuStatic = ({ restaurant, categories, onCategoryChange, tableQrCodeId, orderingEnabled = true }: PublicMenuStaticProps) => {
+  const { setRestaurant } = useCart();
+  const [cartOpen, setCartOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string>('');
   const [activeSubcategory, setActiveSubcategory] = useState<string>('');
   const [selectedAllergens, setSelectedAllergens] = useState<string[]>([]);
@@ -59,6 +66,13 @@ const PublicMenuStatic = ({ restaurant, categories, onCategoryChange }: PublicMe
   
   // Single dish detail dialog state - lifted from MenuGrid
   const [selectedDish, setSelectedDish] = useState<DishDetail | null>(null);
+
+  // Set restaurant context for cart
+  useEffect(() => {
+    if (restaurant?.id) {
+      setRestaurant(restaurant.id, tableQrCodeId);
+    }
+  }, [restaurant?.id, tableQrCodeId, setRestaurant]);
 
   // Set initial category instantly
   useEffect(() => {
@@ -451,7 +465,16 @@ const PublicMenuStatic = ({ restaurant, categories, onCategoryChange }: PublicMe
         showCurrencySymbol={restaurant.show_currency_symbol !== false}
         menuFont={restaurant.menu_font || 'Inter'}
         cardImageShape={restaurant.card_image_shape || 'vertical'}
+        orderingEnabled={orderingEnabled}
       />
+
+      {/* Cart UI */}
+      {orderingEnabled && (
+        <>
+          <CartFAB onClick={() => setCartOpen(true)} />
+          <CartDrawer open={cartOpen} onOpenChange={setCartOpen} />
+        </>
+      )}
 
     </MenuThemeWrapper>
   );

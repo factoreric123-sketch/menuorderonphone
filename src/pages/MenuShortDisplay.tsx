@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import PublicMenuStatic from "./PublicMenuStatic";
 import { useFullMenu } from "@/hooks/useFullMenu";
@@ -11,6 +11,8 @@ import { Skeleton } from "@/components/ui/skeleton";
  */
 const MenuShortDisplay = () => {
   const { restaurantHash, menuId } = useParams<{ restaurantHash: string; menuId: string }>();
+  const [searchParams] = useSearchParams();
+  const tableQrCodeId = searchParams.get('table') || undefined;
   const [status, setStatus] = useState<"resolving" | "found" | "not-found" | "unpublished">("resolving");
   const [restaurantId, setRestaurantId] = useState<string>("");
   const { data: fullMenu, isLoading: menuLoading } = useFullMenu(restaurantId, { 
@@ -118,6 +120,8 @@ const MenuShortDisplay = () => {
       <PublicMenuStatic
         restaurant={fullMenu.restaurant}
         categories={fullMenu.categories || []}
+        tableQrCodeId={tableQrCodeId}
+        orderingEnabled={true}
       />
     );
   }

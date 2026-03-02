@@ -177,6 +177,21 @@ serve(async (req) => {
         break;
       }
 
+      case 'payment_intent.succeeded': {
+        const paymentIntent = event.data.object as Stripe.PaymentIntent;
+        const orderId = paymentIntent.metadata?.order_id;
+
+        if (orderId) {
+          console.log('Payment succeeded for order:', orderId);
+          await supabaseClient
+            .from('orders')
+            .update({ payment_status: 'paid', updated_at: new Date().toISOString() })
+            .eq('id', orderId)
+            .eq('stripe_payment_intent_id', paymentIntent.id);
+        }
+        break;
+      }
+
       default:
         console.log('Unhandled event type:', event.type);
     }

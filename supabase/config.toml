@@ -1,1 +1,28 @@
 project_id = "owagekqtnfiwgvlmnhar"
+
+[functions.create-checkout-session]
+verify_jwt = false
+
+[functions.create-billing-portal]
+verify_jwt = false
+
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.resolve-menu]
+verify_jwt = false
+
+[functions.resolve-short-link]
+verify_jwt = false
+
+[functions.send-contact-email]
+verify_jwt = false
+
+[functions.ensure-menu-link]
+verify_jwt = false
+
+[functions.fix-subscription]
+verify_jwt = false
+
+[functions.create-order]
+verify_jwt = false

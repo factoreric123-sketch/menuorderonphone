@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Badge } from "@/components/ui/badge";
-import { X, Flame, Wheat, Milk, Egg, Fish, Shell, Nut, Sprout, Beef, Bird, Salad } from "lucide-react";
+import { X, Flame, Wheat, Milk, Egg, Fish, Shell, Nut, Sprout, Beef, Bird, Salad, Minus, Plus, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -12,6 +12,9 @@ import { useDishOptions } from "@/hooks/useDishOptions";
 import { useDishModifiers } from "@/hooks/useDishModifiers";
 import { getFontClassName } from "@/lib/fontUtils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useCart } from "@/contexts/CartContext";
+import { generateUUID } from "@/lib/utils/uuid";
+import { toast } from "sonner";
 
 export interface DishDetail {
   id: string;
@@ -38,6 +41,7 @@ interface DishDetailDialogProps {
   menuFont?: string;
   cardImageShape?: 'square' | 'vertical';
   useStaticOptions?: boolean;
+  orderingEnabled?: boolean;
 }
 
 const allergenIconMap: Record<string, any> = {
@@ -61,11 +65,14 @@ export const DishDetailDialog = ({
   showCurrencySymbol = true, 
   menuFont = 'Inter',
   cardImageShape = 'square',
-  useStaticOptions = false
+  useStaticOptions = false,
+  orderingEnabled = false
 }: DishDetailDialogProps) => {
   const isMobile = useIsMobile();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const savedScrollY = useRef<number>(0);
+  const { addItem } = useCart();
+  const [quantity, setQuantity] = useState(1);
   
   // All hooks must be called BEFORE any conditional returns (Rules of Hooks)
   const [selectedOption, setSelectedOption] = useState("");
@@ -95,6 +102,38 @@ export const DishDetailDialog = ({
       setSelectedOption(prev => options.some(o => o.id === prev) ? prev : firstOptionId);
     }
   }, [options]);
+
+  // Reset quantity when dialog opens
+  useEffect(() => {
+    if (open) setQuantity(1);
+  }, [open]);
+
+  const handleAddToCart = useCallback(() => {
+    if (!dish) return;
+
+    const selectedOpt = options.find(o => o.id === selectedOption);
+    const selectedMods = modifiers.filter(m => selectedModifiers.includes(m.id));
+
+    const priceCents = Math.round(parseFloat(dish.price.replace(/[^0-9.]/g, "")) * 100);
+
+    addItem({
+      id: generateUUID(),
+      dishId: dish.id,
+      dishName: dish.name,
+      priceCents,
+      quantity,
+      selectedOptionId: selectedOpt?.id,
+      selectedOptionName: selectedOpt?.name,
+      selectedOptionPriceCents: selectedOpt ? Math.round(parseFloat(selectedOpt.price.replace(/[^0-9.]/g, "")) * 100) : undefined,
+      selectedModifierIds: selectedMods.map(m => m.id),
+      selectedModifierNames: selectedMods.map(m => m.name),
+      selectedModifierPricesCents: selectedMods.map(m => Math.round(parseFloat(m.price.replace(/[^0-9.]/g, "")) * 100)),
+      image: dish.image,
+    });
+
+    toast.success(`${dish.name} added to cart`);
+    onOpenChange(false);
+  }, [dish, options, selectedOption, modifiers, selectedModifiers, quantity, addItem, onOpenChange]);
 
   // Mobile scroll lock - prevents background scroll while modal is open
   useEffect(() => {
@@ -303,6 +342,35 @@ export const DishDetailDialog = ({
           </div>
         )}
       </div>
+
+      {/* Add to Cart Button */}
+      {orderingEnabled && (
+        <div className="pt-4 border-t border-border">
+          <div className="flex items-center gap-3 mb-3">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-10 w-10 rounded-full"
+              onClick={() => setQuantity(Math.max(1, quantity - 1))}
+            >
+              <Minus className="h-4 w-4" />
+            </Button>
+            <span className="text-lg font-semibold w-8 text-center">{quantity}</span>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-10 w-10 rounded-full"
+              onClick={() => setQuantity(quantity + 1)}
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+          <Button onClick={handleAddToCart} className="w-full h-12 rounded-xl text-base font-semibold gap-2">
+            <ShoppingCart className="h-5 w-5" />
+            Add to Cart — {calculateTotalPrice()}
+          </Button>
+        </div>
+      )}
     </>
   );
 

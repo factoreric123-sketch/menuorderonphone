@@ -1,0 +1,540 @@
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { useRestaurantById, useUpdateRestaurant } from "@/hooks/useRestaurants";
+import { useCategories } from "@/hooks/useCategories";
+import { useSubcategories } from "@/hooks/useSubcategories";
+import { useDishes } from "@/hooks/useDishes";
+import { useFullMenu } from "@/hooks/useFullMenu";
+import { EditorTopBar } from "@/components/editor/EditorTopBar";
+import { EditableCategories } from "@/components/editor/EditableCategories";
+import { EditableSubcategories } from "@/components/editor/EditableSubcategories";
+import { EditableDishes } from "@/components/editor/EditableDishes";
+
+import { ExcelImportDialog } from "@/components/editor/ExcelImportDialog";
+import RestaurantHeader from "@/components/RestaurantHeader";
+import { AllergenFilter } from "@/components/AllergenFilter";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Filter } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
+import { useThemeHistory } from "@/hooks/useThemeHistory";
+import { getDefaultTheme } from "@/lib/presetThemes";
+import { Theme } from "@/lib/types/theme";
+import { useQueryClient } from "@tanstack/react-query";
+import { MenuThemeWrapper } from "@/components/MenuThemeWrapper";
+
+const Editor = () => {
+  const { restaurantId } = useParams<{ restaurantId: string }>();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  
+  const [activeCategory, setActiveCategory] = useState<string>("");
+  const [activeSubcategory, setActiveSubcategory] = useState<string>("");
+  const [previewMode, setPreviewMode] = useState(false);
+  
+  const [selectedAllergens, setSelectedAllergens] = useState<string[]>([]);
+  const [selectedDietary, setSelectedDietary] = useState<string[]>([]);
+  const [selectedSpicy, setSelectedSpicy] = useState<boolean | null>(null);
+  const [selectedBadges, setSelectedBadges] = useState<string[]>([]);
+  const [hasPendingChanges, setHasPendingChanges] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [importData, setImportData] = useState<any[]>([]);
+  const subcategoryRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+
+  const { data: restaurant, isLoading: restaurantLoading, refetch: refetchRestaurant } = useRestaurantById(restaurantId || "");
+  const { data: categories = [], isLoading: categoriesLoading } = useCategories(restaurantId || "");
+  const { data: subcategories = [], isLoading: subcategoriesLoading } = useSubcategories(activeCategory);
+  const { data: dishes = [], isLoading: dishesLoading } = useDishes(activeSubcategory);
+  const updateRestaurant = useUpdateRestaurant();
+  
+  // Use same data source as Live Menu for Preview - instant sync!
+  // Disable localStorage cache for Editor Preview to ensure optimistic updates take effect
+  const { data: fullMenuData, refetch: refetchFullMenu } = useFullMenu(restaurantId, { useLocalStorageCache: false });
+
+  // Listen to all dish mutations to detect changes
+  useEffect(() => {
+    const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
+      if (event?.type === 'updated') {
+        const queryKey = event?.query?.queryKey;
+        if (queryKey && (
+          queryKey[0] === 'dishes' || 
+          queryKey[0] === 'categories' || 
+          queryKey[0] === 'subcategories' ||
+          queryKey[0] === 'restaurant' ||
+          queryKey[0] === 'full-menu'
+        )) {
+          setHasPendingChanges(true);
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, [queryClient]);
+
+  // Handle Update button - force sync all caches
+  const handleUpdate = async () => {
+    if (!restaurantId) return;
+
+    // Invalidate all React Query caches
+    await queryClient.invalidateQueries({ queryKey: ["full-menu", restaurantId] });
+    await queryClient.invalidateQueries({ queryKey: ["restaurant", restaurantId] });
+    await queryClient.invalidateQueries({ queryKey: ["categories", restaurantId] });
+    
+    // Clear localStorage cache
+    localStorage.removeItem(`fullMenu:${restaurantId}`);
+    
+    // Force refetch both
+    await Promise.all([refetchRestaurant(), refetchFullMenu()]);
+    
+    // Clear pending changes flag
+    setHasPendingChanges(false);
+    
+    toast("Menu Updated", {
+      description: "All changes are now live!",
+    });
+  };
+
+  // No more polling needed - React Query cache invalidation handles updates instantly
+
+  // Get current category's subcategories from fullMenuData for preview mode (same as Live Menu!)
+  const currentSubcategoriesFromFullMenu = useMemo(() => {
+    if (!fullMenuData?.categories || !activeCategory) return [];
+    const category = fullMenuData.categories.find((c: any) => c.id === activeCategory);
+    return category?.subcategories || [];
+  }, [fullMenuData, activeCategory]);
+
+  // Fallback to regular subcategories query for edit mode
+  const currentSubcategories = useMemo(() => {
+    if (previewMode) {
+      return currentSubcategoriesFromFullMenu;
+    }
+    return subcategories.filter(s => s.category_id === activeCategory);
+  }, [previewMode, currentSubcategoriesFromFullMenu, subcategories, activeCategory]);
+
+  // Group dishes by subcategory for preview mode - using fullMenuData (same as Live Menu!)
+  const dishesBySubcategory = useMemo(() => {
+    if (!previewMode) return {};
+    if (!fullMenuData?.categories || !activeCategory) return {};
+    
+    const category = fullMenuData.categories.find((c: any) => c.id === activeCategory);
+    if (!category?.subcategories) return {};
+    
+    const grouped: Record<string, any[]> = {};
+    category.subcategories.forEach((sub: any) => {
+      // Each dish from fullMenuData includes options and modifiers!
+      grouped[sub.id] = sub.dishes || [];
+    });
+    return grouped;
+  }, [fullMenuData, activeCategory, previewMode]);
+
+  // Theme history for undo/redo
+  const { canUndo, canRedo, undo, redo, push, reset } = useThemeHistory(
+    (restaurant?.theme as Theme) || getDefaultTheme()
+  );
+
+  // Reset history when restaurant changes
+  useEffect(() => {
+    if (restaurant?.theme) {
+      reset(restaurant.theme as Theme);
+    }
+  }, [restaurant?.id]);
+
+  const handleUndo = () => {
+    const prevTheme = undo();
+    if (prevTheme && restaurant) {
+      updateRestaurant.mutate({ id: restaurant.id, updates: { theme: prevTheme } });
+    }
+  };
+
+  const handleRedo = () => {
+    const nextTheme = redo();
+    if (nextTheme && restaurant) {
+      updateRestaurant.mutate({ id: restaurant.id, updates: { theme: nextTheme } });
+    }
+  };
+
+  const handleThemeChange = (theme: Theme) => {
+    push(theme);
+  };
+
+  // Keyboard shortcuts for undo/redo - optimized with proper dependencies
+  useEffect(() => {
+    if (!restaurant || previewMode) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+        e.preventDefault();
+        
+        if (e.shiftKey) {
+          const nextTheme = redo();
+          if (nextTheme) {
+            updateRestaurant.mutate({ id: restaurant.id, updates: { theme: nextTheme } });
+          }
+        } else {
+          const prevTheme = undo();
+          if (prevTheme) {
+            updateRestaurant.mutate({ id: restaurant.id, updates: { theme: prevTheme } });
+          }
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [previewMode, restaurant?.id, undo, redo]);
+
+  // Set initial active category
+  useEffect(() => {
+    if (categories.length > 0 && !activeCategory) {
+      setActiveCategory(categories[0].id);
+    }
+  }, [categories, activeCategory]);
+
+  // Set initial active subcategory when category changes
+  useEffect(() => {
+    if (!activeCategory) return;
+    
+    const subsForActiveCategory = subcategories.filter(s => s.category_id === activeCategory);
+    if (subsForActiveCategory.length > 0 && !activeSubcategory) {
+      setActiveSubcategory(subsForActiveCategory[0].id);
+    } else if (subsForActiveCategory.length === 0) {
+      setActiveSubcategory("");
+    }
+  }, [subcategories, activeCategory]);
+
+  // Scroll to subcategory when clicked with offset for sticky header (preview mode only)
+  const handleSubcategoryClick = useCallback((subcategoryId: string) => {
+    setActiveSubcategory(subcategoryId);
+    if (previewMode) {
+      const subcategoryName = currentSubcategories.find(s => s.id === subcategoryId)?.name;
+      if (subcategoryName) {
+        const element = subcategoryRefs.current[subcategoryName];
+        if (element) {
+          const headerOffset = 120; // Height of sticky navigation
+          const elementPosition = element.getBoundingClientRect().top;
+          const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+          
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: 'smooth'
+          });
+        }
+      }
+    }
+  }, [previewMode, currentSubcategories]);
+
+  // Update active subcategory based on scroll position (preview mode only)
+  useEffect(() => {
+    if (!previewMode || currentSubcategories.length === 0) return;
+
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY + 250;
+      
+      for (const subcategory of currentSubcategories) {
+        const element = subcategoryRefs.current[subcategory.name];
+        if (element) {
+          const { offsetTop, offsetHeight } = element;
+          if (scrollPosition >= offsetTop && scrollPosition < offsetTop + offsetHeight) {
+            setActiveSubcategory(subcategory.id);
+            break;
+          }
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [previewMode, currentSubcategories]);
+
+  const handlePublishToggle = async () => {
+    if (!restaurant) return;
+    
+    const newPublishedState = !restaurant.published;
+    
+    // Optimistic UI - update immediately
+    updateRestaurant.mutate({
+      id: restaurant.id,
+      updates: { published: newPublishedState }
+    });
+    
+    // Show success immediately (optimistic)
+    toast.success(newPublishedState ? "Menu published!" : "Menu unpublished");
+  };
+
+  const handleFilterToggle = () => {
+    if (!restaurant) return;
+    
+    const newState = !restaurant.show_allergen_filter;
+    
+    updateRestaurant.mutate({
+      id: restaurant.id,
+      updates: { show_allergen_filter: newState }
+    });
+    
+    toast.success(newState ? "Filter enabled" : "Filter disabled");
+  };
+
+
+  // Filter handlers
+  const handleAllergenToggle = useCallback((allergen: string) => {
+    setSelectedAllergens((prev) =>
+      prev.includes(allergen) ? prev.filter((a) => a !== allergen) : [...prev, allergen]
+    );
+  }, []);
+
+  const handleDietaryToggle = useCallback((dietary: string) => {
+    setSelectedDietary((prev) =>
+      prev.includes(dietary) ? prev.filter((d) => d !== dietary) : [...prev, dietary]
+    );
+  }, []);
+
+  const handleSpicyToggle = useCallback((value: boolean | null) => {
+    setSelectedSpicy(value);
+  }, []);
+
+  const handleBadgeToggle = useCallback((badge: string) => {
+    setSelectedBadges((prev) =>
+      prev.includes(badge) ? prev.filter((b) => b !== badge) : [...prev, badge]
+    );
+  }, []);
+
+  const handleClearFilters = useCallback(() => {
+    setSelectedAllergens([]);
+    setSelectedDietary([]);
+    setSelectedSpicy(null);
+    setSelectedBadges([]);
+  }, []);
+
+  // Filter dishes helper function
+  const getFilteredDishes = useCallback((dishesToFilter: any[]) => {
+    if (!previewMode || !dishesToFilter || dishesToFilter.length === 0) return dishesToFilter;
+
+    if (selectedAllergens.length === 0 && selectedDietary.length === 0 && selectedSpicy === null && selectedBadges.length === 0) {
+      return dishesToFilter;
+    }
+
+    const isVeganSelected = selectedDietary.includes("vegan");
+    const isVegetarianSelected = selectedDietary.includes("vegetarian");
+    
+    return dishesToFilter.filter((dish) => {
+      if (selectedAllergens.length > 0 && dish.allergens && dish.allergens.length > 0) {
+        if (dish.allergens.some((allergen: string) => selectedAllergens.includes(allergen.toLowerCase()))) {
+          return false;
+        }
+      }
+      
+      if (selectedDietary.length > 0) {
+        if (isVeganSelected && !dish.is_vegan) return false;
+        if (isVegetarianSelected && !isVeganSelected && !dish.is_vegetarian && !dish.is_vegan) return false;
+      }
+      
+      if (selectedSpicy !== null && dish.is_spicy !== selectedSpicy) {
+        return false;
+      }
+      
+      if (selectedBadges.length > 0) {
+        if (selectedBadges.includes("new") && !dish.is_new) return false;
+        if (selectedBadges.includes("special") && !dish.is_special) return false;
+        if (selectedBadges.includes("popular") && !dish.is_popular) return false;
+        if (selectedBadges.includes("chef") && !dish.is_chef_recommendation) return false;
+      }
+      
+      return true;
+    });
+  }, [previewMode, selectedAllergens, selectedDietary, selectedSpicy, selectedBadges]);
+
+  // Filtered dishes for edit mode
+  const filteredDishes = useMemo(() => getFilteredDishes(dishes), [dishes, getFilteredDishes]);
+
+
+  // Show skeleton only on initial load, not during refetch
+  const isInitialLoading = 
+    restaurantLoading || 
+    (categoriesLoading && categories.length === 0);
+
+  if (isInitialLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="h-16 bg-muted animate-skeleton-pulse" />
+        <div className="h-64 bg-muted animate-skeleton-pulse" />
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex gap-3 py-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-9 w-24 rounded-full bg-muted animate-skeleton-pulse" />
+            ))}
+          </div>
+          <div className="flex gap-4 py-3 border-b">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-6 w-20 bg-muted animate-skeleton-pulse" />
+            ))}
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-6 py-6">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="space-y-2">
+                <div className="aspect-square rounded-2xl bg-muted animate-skeleton-pulse" />
+                <div className="h-4 w-3/4 bg-muted animate-skeleton-pulse" />
+                <div className="h-3 w-1/2 bg-muted animate-skeleton-pulse" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!restaurant) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Restaurant not found</h1>
+          <button onClick={() => navigate("/dashboard")} className="text-primary hover:underline">
+            Back to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const activeCategoryData = categories.find(c => c.id === activeCategory);
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* EditorTopBar stays OUTSIDE the theme wrapper - uses app styling */}
+      <EditorTopBar
+        restaurant={restaurant}
+        previewMode={previewMode}
+        viewMode={'grid'}
+        onViewModeChange={() => {}}
+        onPreviewToggle={() => {
+          const newPreviewMode = !previewMode;
+          if (newPreviewMode) {
+            // Force refresh when entering preview mode
+            if (restaurantId) {
+              localStorage.removeItem(`fullMenu:${restaurantId}`);
+            }
+            refetchFullMenu();
+          }
+          setPreviewMode(newPreviewMode);
+        }}
+        onPublishToggle={handlePublishToggle}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        onThemeChange={handleThemeChange}
+        onFilterToggle={handleFilterToggle}
+        onRefresh={refetchRestaurant}
+        onUpdate={handleUpdate}
+        onImportData={(data) => {
+          setImportData(data);
+          setShowImportDialog(true);
+        }}
+      />
+
+      {/* Menu content wrapped in theme - each restaurant gets its own theme */}
+      <MenuThemeWrapper theme={restaurant.theme} className="min-h-[calc(100vh-64px)]">
+        <RestaurantHeader
+          name={restaurant.name}
+          tagline={restaurant.tagline || ""}
+          heroImageUrl={restaurant.hero_image_url}
+          editable={!previewMode}
+          restaurantId={restaurant.id}
+        />
+
+      <div className=" mx-auto max-w-6xl">
+        <Sheet>
+          <EditableCategories
+            categories={categories}
+            activeCategory={activeCategory}
+            onCategoryChange={setActiveCategory}
+            restaurantId={restaurant.id}
+            previewMode={previewMode}
+            filterSheetTrigger={
+              previewMode && restaurant.show_allergen_filter !== false ? (
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Filter className="h-4 w-4" />
+                    Filters
+                  </Button>
+                </SheetTrigger>
+              ) : null
+            }
+          />
+          
+          <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+            <SheetHeader className="mb-6">
+            </SheetHeader>
+            {previewMode && restaurant.show_allergen_filter !== false && (
+              <AllergenFilter
+                selectedAllergens={selectedAllergens}
+                selectedDietary={selectedDietary}
+                selectedSpicy={selectedSpicy}
+                selectedBadges={selectedBadges}
+                onAllergenToggle={handleAllergenToggle}
+                onDietaryToggle={handleDietaryToggle}
+                onSpicyToggle={handleSpicyToggle}
+                onBadgeToggle={handleBadgeToggle}
+                onClear={handleClearFilters}
+                allergenOrder={restaurant.allergen_filter_order as string[] | undefined}
+                dietaryOrder={restaurant.dietary_filter_order as string[] | undefined}
+                badgeOrder={restaurant.badge_display_order as string[] | undefined}
+              />
+            )}
+          </SheetContent>
+        </Sheet>
+
+        <EditableSubcategories
+          subcategories={subcategories}
+          activeSubcategory={activeSubcategory}
+          onSubcategoryChange={handleSubcategoryClick}
+          categoryId={activeCategory}
+          previewMode={previewMode}
+        />
+
+        {/* Preview Mode: Show all subcategories in one page */}
+        {previewMode && currentSubcategories.map((subcategory) => {
+          const subcategoryDishes = dishesBySubcategory[subcategory.id] || [];
+          const filteredSubcategoryDishes = getFilteredDishes(subcategoryDishes);
+          
+          return (
+            <div 
+              key={subcategory.id}
+              ref={(el) => subcategoryRefs.current[subcategory.name] = el}
+            >
+              <EditableDishes
+                dishes={filteredSubcategoryDishes}
+                subcategoryId={subcategory.id}
+                previewMode={previewMode}
+                restaurant={restaurant}
+                sectionTitle={subcategory.name}
+              />
+            </div>
+          );
+        })}
+
+        {/* Edit Mode: Show only active subcategory */}
+        {!previewMode && activeSubcategory && (
+          <EditableDishes
+            dishes={filteredDishes || dishes}
+            subcategoryId={activeSubcategory}
+            previewMode={previewMode}
+          />
+        )}
+        </div>
+      </MenuThemeWrapper>
+
+      <ExcelImportDialog
+        open={showImportDialog}
+        onOpenChange={setShowImportDialog}
+        data={importData}
+        restaurantId={restaurant.id}
+        categories={categories}
+        subcategories={subcategories.filter(s => s.category_id === activeCategory)}
+        subcategoryId={activeSubcategory}
+      />
+    </div>
+  );
+};
+
+export default Editor;

@@ -1,0 +1,588 @@
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useSortable } from "@dnd-kit/sortable";
+import { useDebounce } from "use-debounce";
+import { CSS } from "@dnd-kit/utilities";
+import { GripVertical, Trash2, Image as ImageIcon, ChevronDown, Flame, Sparkles, Star, TrendingUp, ChefHat, Wheat, Milk, Egg, Fish, Shell, Nut, Sprout, Beef, Bird, Leaf, Salad, DollarSign, Crop } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { InlineEdit } from "./InlineEdit";
+import { useUpdateDish, useDeleteDish, type Dish } from "@/hooks/useDishes";
+import { ImageCropModal } from "@/components/ImageCropModal";
+import { useImageUpload } from "@/hooks/useImageUpload";
+import { ALLERGEN_OPTIONS } from "@/components/AllergenFilter";
+import { DishOptionsEditor } from "./DishOptionsEditor";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
+
+interface SortableDishProps {
+  dish: Dish;
+  subcategoryId: string;
+  restaurantId?: string;
+  forceTwoDecimals?: boolean;
+  layoutStyle?: 'generic' | 'fancy';
+  cardImageShape?: 'square' | 'vertical';
+}
+
+const SortableDishInner = ({ dish, subcategoryId, restaurantId, forceTwoDecimals, layoutStyle = 'generic', cardImageShape = 'square' }: SortableDishProps) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: dish.id,
+  });
+  const updateDish = useUpdateDish();
+  const deleteDish = useDeleteDish();
+  const uploadImage = useImageUpload();
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showCropModal, setShowCropModal] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [showOptionsEditor, setShowOptionsEditor] = useState(false);
+  const [localCalories, setLocalCalories] = useState(dish.calories?.toString() || "");
+  const [debouncedCalories] = useDebounce(localCalories, 100); // Minimal debounce for typing
+  
+  // Optimistic local state for instant feedback - only initialize once per dish ID
+  const [localName, setLocalName] = useState(dish.name);
+  const [localDescription, setLocalDescription] = useState(dish.description || "");
+  const [localPrice, setLocalPrice] = useState(dish.price);
+  const [localAllergens, setLocalAllergens] = useState<string[]>(dish.allergens || []);
+  const [localVegetarian, setLocalVegetarian] = useState(dish.is_vegetarian);
+  const [localVegan, setLocalVegan] = useState(dish.is_vegan);
+  const [localSpicy, setLocalSpicy] = useState(dish.is_spicy);
+  const [localNew, setLocalNew] = useState(dish.is_new);
+  const [localSpecial, setLocalSpecial] = useState(dish.is_special);
+  const [localPopular, setLocalPopular] = useState(dish.is_popular);
+  const [localChefRec, setLocalChefRec] = useState(dish.is_chef_recommendation);
+  // CRITICAL FIX: Track has_options locally to sync with DishOptionsEditor saves
+  const [localHasOptions, setLocalHasOptions] = useState(dish.has_options);
+  
+  // Track if we've initialized for this dish ID - prevents background refetches from overwriting user edits
+  const initializedDishId = useRef<string | null>(null);
+  const queryClient = useQueryClient();
+
+  // Only sync from dish prop when switching to a different dish (not on refetches)
+  useEffect(() => {
+    if (initializedDishId.current !== dish.id) {
+      initializedDishId.current = dish.id;
+      setLocalName(dish.name);
+      setLocalDescription(dish.description || "");
+      setLocalPrice(dish.price);
+      setLocalAllergens(dish.allergens || []);
+      setLocalVegetarian(dish.is_vegetarian);
+      setLocalVegan(dish.is_vegan);
+      setLocalSpicy(dish.is_spicy);
+      setLocalNew(dish.is_new);
+      setLocalSpecial(dish.is_special);
+      setLocalPopular(dish.is_popular);
+      setLocalChefRec(dish.is_chef_recommendation);
+      setLocalHasOptions(dish.has_options);
+    }
+  }, [dish.id]);
+  
+  // CRITICAL FIX: Sync localHasOptions when DishOptionsEditor saves
+  // Subscribe to React Query cache changes for this dish
+  useEffect(() => {
+    const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
+      if (
+        event?.type === 'updated' && 
+        event?.query?.queryKey?.[0] === 'full-menu'
+      ) {
+        // Check if this dish's has_options changed in the full-menu cache
+        const fullMenuQueries = queryClient.getQueriesData({ queryKey: ['full-menu'] });
+        for (const [, data] of fullMenuQueries) {
+          if (!data) continue;
+          const menuData = data as any;
+          for (const cat of (menuData.categories || [])) {
+            for (const sub of (cat.subcategories || [])) {
+              const updatedDish = (sub.dishes || []).find((d: any) => d.id === dish.id);
+              if (updatedDish && updatedDish.has_options !== localHasOptions) {
+                setLocalHasOptions(updatedDish.has_options);
+                return;
+              }
+            }
+          }
+        }
+      }
+    });
+    return unsubscribe;
+  }, [queryClient, dish.id, localHasOptions]);
+
+  // Update database only when debounced value changes
+  useEffect(() => {
+    const caloriesNum = debouncedCalories ? parseInt(debouncedCalories) : null;
+    if (caloriesNum !== dish.calories) {
+      handleUpdate("calories", caloriesNum);
+    }
+  }, [debouncedCalories]);
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition: isDragging ? transition : "transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+    opacity: isDragging ? 0.3 : 1,
+  };
+
+  // Fire-and-forget background updates - UI is instant, DB syncs in background
+  const pendingUpdates = useRef<Partial<Dish>>({});
+  const updateTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const scheduleUpdate = useCallback((updates: Partial<Dish>) => {
+    // Merge updates
+    pendingUpdates.current = { ...pendingUpdates.current, ...updates };
+    
+    // Clear any pending timer
+    if (updateTimer.current) {
+      clearTimeout(updateTimer.current);
+    }
+    
+    // Batch updates with minimal delay - just enough to catch rapid clicks
+    updateTimer.current = setTimeout(() => {
+      const toUpdate = pendingUpdates.current;
+      pendingUpdates.current = {};
+      updateTimer.current = null;
+      
+      // Fire and forget - don't wait for response
+      updateDish.mutate({
+        id: dish.id,
+        updates: toUpdate,
+      });
+    }, 16); // Single frame (~60fps) - imperceptible delay
+  }, [dish.id, updateDish]);
+
+  const handleUpdate = (field: keyof Dish, value: string | boolean | string[] | number | null) => {
+    scheduleUpdate({ [field]: value });
+  };
+
+  // Instant local state update + DB sync for name/description/price
+  const handleNameChange = (value: string) => {
+    setLocalName(value);
+    scheduleUpdate({ name: value });
+  };
+
+  const handleDescriptionChange = (value: string) => {
+    setLocalDescription(value);
+    scheduleUpdate({ description: value });
+  };
+
+  const handlePriceChange = (value: string) => {
+    setLocalPrice(value);
+    scheduleUpdate({ price: value });
+  };
+
+  const handleAllergenToggle = (allergen: string) => {
+    const updated = localAllergens.includes(allergen)
+      ? localAllergens.filter((a) => a !== allergen)
+      : [...localAllergens, allergen];
+    setLocalAllergens(updated);
+    scheduleUpdate({ allergens: updated });
+  };
+
+  const handleToggle = (field: keyof Dish, currentValue: boolean, setter: (v: boolean) => void) => {
+    setter(!currentValue);
+    scheduleUpdate({ [field]: !currentValue });
+  };
+
+  const handleDelete = () => {
+    deleteDish.mutate({ id: dish.id, subcategoryId });
+    setShowDeleteDialog(false);
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedImage(file);
+      setShowCropModal(true);
+    }
+  };
+
+  const handleCropExisting = async () => {
+    if (!dish.image_url) return;
+    
+    try {
+      // Fetch the existing image and convert to File
+      const response = await fetch(dish.image_url);
+      const blob = await response.blob();
+      const file = new File([blob], `${dish.id}-recrop.jpg`, { type: blob.type || 'image/jpeg' });
+      setSelectedImage(file);
+      setShowCropModal(true);
+    } catch (error) {
+      toast.error("Failed to load image for cropping");
+    }
+  };
+
+  // Track local image for instant preview - use ref to persist across parent re-renders
+  const [localImageUrl, setLocalImageUrl] = useState<string | null>(null);
+  const localImageRef = useRef<string | null>(null);
+
+  const handleImageCrop = async (croppedFile: File) => {
+    // 1. Create local blob URL for INSTANT preview
+    const localPreviewUrl = URL.createObjectURL(croppedFile);
+    
+    // 2. INSTANTLY update both state AND ref (ref persists across parent updates)
+    localImageRef.current = localPreviewUrl;
+    setLocalImageUrl(localPreviewUrl);
+    
+    // 3. Close modal immediately for snappy UX
+    setShowCropModal(false);
+    setSelectedImage(null);
+    
+    // 4. Upload in background (fire-and-forget pattern)
+    try {
+      const imageUrl = await uploadImage.mutateAsync({
+        file: croppedFile,
+        bucket: "dish-images",
+        path: `${dish.id}/${croppedFile.name}`,
+      });
+      
+      // 5. Update database with real CDN URL (background)
+      updateDish.mutate({
+        id: dish.id,
+        updates: { image_url: imageUrl },
+      });
+      
+      toast.success("Image saved. Click preview to see it");
+      
+      // 6. Keep blob URL visible, then refresh cache after 3s
+      // This ensures the image stays visible while cache updates
+      setTimeout(async () => {
+        // Force refetch to get updated dish.image_url from DB
+        await queryClient.invalidateQueries({ queryKey: ['full-menu'] });
+        await queryClient.refetchQueries({ queryKey: ['full-menu'] });
+        
+        // Now safe to clear blob URL since dish.image_url should be updated
+        localImageRef.current = null;
+        setLocalImageUrl(null);
+        URL.revokeObjectURL(localPreviewUrl);
+      }, 3000);
+    } catch (error) {
+      // Revert on failure
+      localImageRef.current = null;
+      setLocalImageUrl(null);
+      URL.revokeObjectURL(localPreviewUrl);
+      toast.error("Failed to upload image");
+    }
+  };
+
+  // Use local image if available (check both state and ref for resilience), otherwise use dish image
+  const displayImageUrl = localImageUrl || localImageRef.current || dish.image_url;
+
+  return (
+    <>
+      <div ref={setNodeRef} style={style} className="group relative">
+      {/* Stacked badges */}
+      <div className="absolute top-2 right-2 z-10 flex flex-col gap-1 items-end">
+        {localNew && (
+          <Badge className="bg-ios-green text-white px-3 py-1 rounded-full text-xs font-semibold shadow-lg flex items-center gap-1">
+            <Sparkles className="h-3 w-3" />
+            New
+          </Badge>
+        )}
+        {localSpecial && (
+          <Badge className="bg-ios-orange text-white px-3 py-1 rounded-full text-xs font-semibold shadow-lg flex items-center gap-1">
+            <Star className="h-3 w-3" />
+            Special
+          </Badge>
+        )}
+        {localPopular && (
+          <Badge className="bg-ios-blue text-white px-3 py-1 rounded-full text-xs font-semibold shadow-lg flex items-center gap-1">
+            <TrendingUp className="h-3 w-3" />
+            Popular
+          </Badge>
+        )}
+        {localChefRec && (
+          <Badge className="bg-purple-500 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-lg flex items-center gap-1">
+            <ChefHat className="h-3 w-3" />
+            Chef's Pick
+          </Badge>
+        )}
+      </div>
+        
+        <div className="absolute top-2 left-2 z-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button
+            {...attributes}
+            {...listeners}
+            className="bg-background/90 backdrop-blur p-1.5 rounded-md cursor-grab active:cursor-grabbing hover:bg-background"
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
+          {dish.image_url ? (
+            <button
+              onClick={handleCropExisting}
+              className="bg-background/90 backdrop-blur p-1.5 rounded-md hover:bg-background transition-colors"
+            >
+              <Crop className="h-4 w-4" />
+            </button>
+          ) : (
+            <label className="bg-background/90 backdrop-blur p-1.5 rounded-md hover:bg-background transition-colors cursor-pointer">
+              <Crop className="h-4 w-4" />
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageSelect}
+                className="hidden"
+              />
+            </label>
+          )}
+          <button
+            onClick={() => setShowDeleteDialog(true)}
+            className="bg-background/90 backdrop-blur p-1.5 rounded-md hover:bg-destructive hover:text-destructive-foreground transition-colors"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className={`bg-dish-card rounded-2xl overflow-hidden ${layoutStyle === 'fancy' ? 'aspect-[3/4]' : 'aspect-square'} mb-2.5 relative shadow-md group/image`}>
+          {displayImageUrl ? (
+            <img 
+              src={displayImageUrl} 
+              alt={dish.name}
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-muted">
+              <ImageIcon className="h-12 w-12 text-muted-foreground" />
+            </div>
+          )}
+          
+          <label className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur opacity-0 group-hover/image:opacity-100 transition-opacity cursor-pointer">
+            <div className="text-center">
+              <ImageIcon className="h-8 w-8 mx-auto mb-2" />
+              <span className="text-sm font-medium">Change Photo</span>
+            </div>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageSelect}
+              className="hidden"
+            />
+          </label>
+        </div>
+
+        <div>
+          <InlineEdit
+            value={localName}
+            onSave={handleNameChange}
+            className="text-base font-bold text-foreground mb-1 w-full"
+          />
+          <InlineEdit
+            value={localDescription}
+            onSave={handleDescriptionChange}
+            className="text-xs text-muted-foreground mb-1.5 w-full"
+            multiline
+          />
+          <InlineEdit
+            value={localPrice}
+            onSave={handlePriceChange}
+            className="text-sm font-semibold text-foreground w-full"
+          />
+
+          {/* Expandable dietary info */}
+          <Collapsible open={isExpanded} onOpenChange={setIsExpanded} className="mt-3">
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="w-full justify-between p-2 h-auto">
+                <span className="text-xs  font-medium">Dietary Info</span>
+                <ChevronDown className={`h-4 w-4 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-2 space-y-3 p-2 bg-muted/30 rounded-lg">
+              {/* Allergens */}
+              <div>
+                <Label className="text-xs text-muted-foreground mb-2 block">Allergens</Label>
+                <div className="flex flex-wrap gap-1.5">
+                  {ALLERGEN_OPTIONS.map((option) => {
+                    const Icon = option.Icon;
+                    const isSelected = localAllergens.includes(option.value);
+                    return (
+                      <Badge
+                        key={option.value}
+                        variant={isSelected ? "default" : "outline"}
+                        className="cursor-pointer text-xs flex items-center gap-1 active:scale-95"
+                        onClick={() => handleAllergenToggle(option.value)}
+                      >
+                        <Icon className="h-3 w-3" />
+                        {option.label}
+                      </Badge>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Calories */}
+              <div className="flex items-center gap-2">
+                <Label htmlFor={`calories-${dish.id}`} className="text-xs text-muted-foreground">
+                  Calories
+                </Label>
+                <Input
+                  id={`calories-${dish.id}`}
+                  type="number"
+                  value={localCalories}
+                  onChange={(e) => setLocalCalories(e.target.value)}
+                  className="h-8 text-xs w-24"
+                  placeholder="0"
+                />
+              </div>
+
+              {/* Dietary preferences */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor={`vegetarian-${dish.id}`} className="text-xs flex items-center gap-1.5">
+                    <Salad className="h-3.5 w-3.5 text-ios-green" />
+                    Vegetarian
+                  </Label>
+                  <Switch
+                    id={`vegetarian-${dish.id}`}
+                    checked={localVegetarian}
+                    onCheckedChange={() => handleToggle("is_vegetarian", localVegetarian, setLocalVegetarian)}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor={`vegan-${dish.id}`} className="text-xs flex items-center gap-1.5">
+                    <Sprout className="h-3.5 w-3.5 text-ios-green" />
+                    Vegan
+                  </Label>
+                  <Switch
+                    id={`vegan-${dish.id}`}
+                    checked={localVegan}
+                    onCheckedChange={() => handleToggle("is_vegan", localVegan, setLocalVegan)}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor={`spicy-${dish.id}`} className="text-xs flex items-center gap-1.5">
+                    <Flame className="h-3.5 w-3.5 text-ios-red" />
+                    Spicy
+                  </Label>
+                  <Switch
+                    id={`spicy-${dish.id}`}
+                    checked={localSpicy}
+                    onCheckedChange={() => handleToggle("is_spicy", localSpicy, setLocalSpicy)}
+                  />
+                </div>
+              </div>
+
+              {/* Badge Section */}
+              <div className="space-y-2 pt-2 border-t border-border">
+                <Label className="text-xs text-muted-foreground">Badges & Labels</Label>
+                
+                <div className="flex items-center justify-between">
+                  <Label htmlFor={`new-${dish.id}`} className="text-xs flex items-center gap-1.5">
+                    <Sparkles className="h-3.5 w-3.5 text-ios-green" />
+                    New Addition
+                  </Label>
+                  <Switch
+                    id={`new-${dish.id}`}
+                    checked={localNew}
+                    onCheckedChange={() => handleToggle("is_new", localNew, setLocalNew)}
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <Label htmlFor={`special-${dish.id}`} className="text-xs flex items-center gap-1.5">
+                    <Star className="h-3.5 w-3.5 text-ios-orange" />
+                    Special
+                  </Label>
+                  <Switch
+                    id={`special-${dish.id}`}
+                    checked={localSpecial}
+                    onCheckedChange={() => handleToggle("is_special", localSpecial, setLocalSpecial)}
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <Label htmlFor={`popular-${dish.id}`} className="text-xs flex items-center gap-1.5">
+                    <TrendingUp className="h-3.5 w-3.5 text-ios-blue" />
+                    Popular
+                  </Label>
+                  <Switch
+                    id={`popular-${dish.id}`}
+                    checked={localPopular}
+                    onCheckedChange={() => handleToggle("is_popular", localPopular, setLocalPopular)}
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <Label htmlFor={`chef-${dish.id}`} className="text-xs flex items-center gap-1.5">
+                    <ChefHat className="h-3.5 w-3.5 text-purple-500" />
+                    Chef's Recommendation
+                  </Label>
+                  <Switch
+                    id={`chef-${dish.id}`}
+                    checked={localChefRec}
+                    onCheckedChange={() => handleToggle("is_chef_recommendation", localChefRec, setLocalChefRec)}
+                  />
+                </div>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+
+          {/* Pricing Options Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full mt-2"
+            onClick={() => setShowOptionsEditor(true)}
+          >
+            <DollarSign className="h-4 w-4 mr-2" />
+            Pricing Options
+            {localHasOptions && (
+              <Badge variant="secondary" className="ml-2">
+                Enabled
+              </Badge>
+            )}
+          </Button>
+        </div>
+      </div>
+
+      {selectedImage && (
+        <ImageCropModal
+          open={showCropModal}
+          onOpenChange={setShowCropModal}
+          imageFile={selectedImage}
+          onCropComplete={handleImageCrop}
+          aspectRatio={cardImageShape === 'vertical' ? 3 / 4 : 1}
+        />
+      )}
+
+      <DishOptionsEditor
+        dishId={dish.id}
+        dishName={dish.name}
+        hasOptions={localHasOptions}
+        restaurantId={restaurantId}
+        forceTwoDecimals={forceTwoDecimals}
+        open={showOptionsEditor}
+        onOpenChange={setShowOptionsEditor}
+      />
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Dish</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{dish.name}"?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+};
+
+// Memoize - only re-render when dish ID or restaurantId changes (local state handles everything else)
+export const SortableDish = React.memo(SortableDishInner, (prev, next) => {
+  return prev.dish.id === next.dish.id && prev.subcategoryId === next.subcategoryId && prev.restaurantId === next.restaurantId && prev.forceTwoDecimals === next.forceTwoDecimals && prev.layoutStyle === next.layoutStyle;
+});

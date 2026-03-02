@@ -1,0 +1,364 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  /* Legal page content styling */
+  .legal-content section {
+    @apply bg-card/5 rounded-xl p-6 md:p-8 border border-border/30;
+  }
+  
+  .legal-content h2 {
+    @apply text-xl md:text-2xl font-bold text-foreground mb-4 pb-3 border-b border-border/30;
+  }
+  
+  .legal-content h3 {
+    @apply text-lg font-semibold text-foreground mt-6 mb-3;
+  }
+  
+  .legal-content p {
+    @apply text-foreground/80 leading-relaxed mb-4;
+  }
+  
+  .legal-content ul {
+    @apply space-y-2 mb-4 pl-0 list-none;
+  }
+  
+  .legal-content li {
+    @apply text-foreground/80 flex items-start gap-3 pl-0;
+  }
+  
+  .legal-content li::before {
+    content: "→";
+    @apply text-muted-foreground font-bold mt-0 flex-shrink-0;
+  }
+  
+  .legal-content strong {
+    @apply text-foreground font-semibold;
+  }
+  
+  .legal-content a {
+    @apply text-foreground underline underline-offset-2 hover:text-foreground/80 transition-colors;
+  }
+  
+  .legal-content table {
+    @apply w-full border-collapse rounded-lg overflow-hidden my-4;
+  }
+  
+  .legal-content th {
+    @apply bg-muted/30 text-foreground font-semibold text-left px-4 py-3 border-b border-border;
+  }
+  
+  .legal-content td {
+    @apply px-4 py-3 border-b border-border/30 text-foreground/80;
+  }
+  
+  .legal-content tr:last-child td {
+    @apply border-b-0;
+  }
+
+  :root {
+    --background: 0 0% 6%;
+    --foreground: 0 0% 98%;
+
+    --card: 30 15% 75%;
+    --card-foreground: 0 0% 15%;
+
+    --popover: 0 0% 6%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 6%;
+
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 0 0% 20%;
+    --muted-foreground: 0 0% 65%;
+
+    --accent: 0 0% 0%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 25%;
+    --input: 0 0% 25%;
+    --ring: 0 0% 15%;
+
+    --radius: 0.75rem;
+
+    --new-badge: 160 84% 39%;
+    --dish-card: 30 15% 75%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    /* iOS-style smooth scrolling */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  html {
+    /* Instant scroll - no animation */
+    scroll-behavior: auto;
+    /* iOS momentum scrolling */
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Hide scrollbar but keep functionality (iOS-style) */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* iOS-style tap highlight */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Prevent text selection on interactive elements */
+  button, a {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* Smooth transitions on all interactive elements */
+  button, a, [role="button"] {
+    transition: transform 0.15s cubic-bezier(0.4, 0.0, 0.2, 1),
+                opacity 0.15s cubic-bezier(0.4, 0.0, 0.2, 1),
+                background-color 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
+    will-change: transform;
+  }
+
+  /* Active state for all interactive elements (iOS-style) */
+  button:active, a:active, [role="button"]:active {
+    transform: scale(0.97);
+  }
+
+  /* iOS-style focus ring */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+    border-radius: 0.375rem;
+  }
+
+  /* Fade in up animation */
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fade-in-up {
+    animation: fade-in-up 0.6s cubic-bezier(0.4, 0.0, 0.2, 1) forwards;
+  }
+
+  .animation-delay-200 {
+    animation-delay: 200ms;
+  }
+
+  /* Gradient shift animation */
+  @keyframes gradient-shift {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.8;
+    }
+  }
+
+  .animate-gradient-shift {
+    animation: gradient-shift 6s ease-in-out infinite;
+  }
+
+  /* Skeleton loading animation (iOS-style pulse) */
+  @keyframes skeleton-pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+
+  .animate-skeleton-pulse {
+    animation: skeleton-pulse 1.5s cubic-bezier(0.4, 0.0, 0.2, 1) infinite;
+  }
+
+  /* Shimmer effect for loading states */
+  @keyframes shimmer {
+    0% {
+      background-position: -1000px 0;
+    }
+    100% {
+      background-position: 1000px 0;
+    }
+  }
+
+  .animate-shimmer {
+    animation: shimmer 2s infinite linear;
+    background: linear-gradient(
+      to right,
+      hsl(var(--muted)) 0%,
+      hsl(var(--muted) / 0.5) 50%,
+      hsl(var(--muted)) 100%
+    );
+    background-size: 1000px 100%;
+  }
+
+  /* Spin animation for loading indicators */
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .animate-spin {
+    animation: spin 1s linear infinite;
+  }
+
+  /* Bounce animation for micro-interactions */
+  @keyframes bounce {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-5px);
+    }
+  }
+
+  .animate-bounce {
+    animation: bounce 0.5s ease-in-out;
+  }
+
+  /* Scale in animation (iOS-style) */
+  @keyframes scale-in {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .animate-scale-in {
+    animation: scale-in 0.2s cubic-bezier(0.4, 0.0, 0.2, 1) forwards;
+  }
+
+  /* Glass morphism effect (iOS-style) */
+  .glass {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+  }
+
+  /* Blur-up effect for images */
+  .blur-up {
+    filter: blur(10px);
+    transition: filter 0.3s ease-out;
+  }
+
+  .blur-up.loaded {
+    filter: blur(0);
+  }
+
+  /* Smooth color transitions */
+  * {
+    transition-property: color, background-color, border-color;
+    transition-duration: 200ms;
+    transition-timing-function: cubic-bezier(0.4, 0.0, 0.2, 1);
+  }
+}
+
+
+
+/* ============================= */
+/* GLOBAL CUSTOM SCROLLBAR */
+/* ============================= */
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 116, 139, 0.5) transparent;
+}
+
+/* Chrome, Edge, Safari */
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: rgba(100, 116, 139, 0.45);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+  transition: background-color 0.2s ease;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(100, 116, 139, 0.75);
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Font preview classes - use !important to override global styles */
+.font-preview-inter { font-family: 'Inter', sans-serif !important; }
+.font-preview-dm-sans { font-family: 'DM Sans', sans-serif !important; }
+.font-preview-lora { font-family: 'Lora', serif !important; }
+.font-preview-playfair { font-family: 'Playfair Display', serif !important; }
+.font-preview-cormorant { font-family: 'Cormorant Garamond', serif !important; }
+
+/* ============================= */
+/* SCOPED MENU THEMING */
+/* ============================= */
+
+/* 
+ * MenuThemeWrapper scoped theming
+ * Themes only apply to .menu-theme-scope containers
+ * Dashboard, toolbar, and header remain unaffected
+ */
+.menu-theme-scope {
+  /* Inherit CSS variables applied via inline styles */
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+/* Dark/light mode scoping for menu theme containers */
+.menu-theme-scope.dark {
+  color-scheme: dark;
+}
+
+.menu-theme-scope.light {
+  color-scheme: light;
+}

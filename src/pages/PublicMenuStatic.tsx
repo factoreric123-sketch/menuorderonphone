@@ -1,0 +1,460 @@
+import { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from 'react';
+import { Filter } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import CategoryNav from '@/components/CategoryNav';
+import SubcategoryNav from '@/components/SubcategoryNav';
+import MenuGrid from '@/components/MenuGrid';
+import RestaurantHeader from '@/components/RestaurantHeader';
+import { MenuThemeWrapper } from '@/components/MenuThemeWrapper';
+import { DishDetailDialog, DishDetail } from '@/components/DishDetailDialog';
+
+// Lazy load filter - not needed for first paint
+const AllergenFilter = lazy(() => 
+  import('@/components/AllergenFilter').then(m => ({ default: m.AllergenFilter }))
+);
+
+interface PublicMenuStaticProps {
+  restaurant: any;
+  categories: any[];
+  onCategoryChange?: (categoryId: string) => void;
+}
+
+interface Dish {
+  id: string;
+  name: string;
+  description: string;
+  price: string;
+  image_url: string;
+  is_new: boolean;
+  is_special: boolean;
+  is_popular: boolean;
+  is_chef_recommendation: boolean;
+  allergens: string[];
+  calories: number | null;
+  is_vegetarian: boolean;
+  is_vegan: boolean;
+  is_spicy: boolean;
+  subcategory_id: string;
+  order_index: number;
+  has_options?: boolean;
+  options?: Array<{ id: string; name: string; price: string; order_index: number }>;
+  modifiers?: Array<{ id: string; name: string; price: string; order_index: number }>;
+}
+
+/**
+ * Zero-delay menu renderer
+ * Paints shell instantly, hydrates progressively
+ */
+const PublicMenuStatic = ({ restaurant, categories, onCategoryChange }: PublicMenuStaticProps) => {
+  const [activeCategory, setActiveCategory] = useState<string>('');
+  const [activeSubcategory, setActiveSubcategory] = useState<string>('');
+  const [selectedAllergens, setSelectedAllergens] = useState<string[]>([]);
+  const [selectedDietary, setSelectedDietary] = useState<string[]>([]);
+  const [selectedSpicy, setSelectedSpicy] = useState<boolean | null>(null);
+  const [selectedBadges, setSelectedBadges] = useState<string[]>([]);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [filtersReady, setFiltersReady] = useState(false);
+  const subcategoryRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+  
+  // Single dish detail dialog state - lifted from MenuGrid
+  const [selectedDish, setSelectedDish] = useState<DishDetail | null>(null);
+
+  // Set initial category instantly
+  useEffect(() => {
+    if (categories?.length > 0 && !activeCategory) {
+      const firstCategory = categories[0];
+      setActiveCategory(firstCategory.id);
+      onCategoryChange?.(firstCategory.id);
+    }
+  }, [categories, activeCategory, onCategoryChange]);
+
+  // Get active category data
+  const activeCategoryObj = useMemo(
+    () => categories?.find((c) => c.id === activeCategory),
+    [categories, activeCategory]
+  );
+
+  const subcategories = useMemo(
+    () => activeCategoryObj?.subcategories || [],
+    [activeCategoryObj]
+  );
+
+  // Set initial subcategory instantly
+  useEffect(() => {
+    if (subcategories?.length > 0 && !activeSubcategory) {
+      setActiveSubcategory(subcategories[0].id);
+    }
+  }, [subcategories, activeSubcategory]);
+
+  // Memoize all dishes for current category
+  const allDishes = useMemo(() => {
+    if (!subcategories?.length) return [];
+    
+    const dishes: Dish[] = [];
+    subcategories.forEach((subcategory: any) => {
+      if (subcategory.dishes) {
+        subcategory.dishes.forEach((dish: any) => {
+          dishes.push(dish);
+        });
+      }
+    });
+    return dishes;
+  }, [subcategories]);
+
+  // Group dishes by subcategory
+  const dishesBySubcategory = useMemo(() => {
+    if (!subcategories?.length || !allDishes.length) return {};
+
+    const grouped: Record<string, Dish[]> = {};
+    subcategories.forEach((subcategory: any) => {
+      grouped[subcategory.name] = allDishes.filter(
+        (dish) => dish.subcategory_id === subcategory.id
+      );
+    });
+
+    return grouped;
+  }, [allDishes, subcategories]);
+
+  // Filter dishes based on selections
+  const getFilteredDishes = useCallback(
+    (dishesToFilter: Dish[]) => {
+      if (
+        selectedAllergens.length === 0 &&
+        selectedDietary.length === 0 &&
+        selectedSpicy === null &&
+        selectedBadges.length === 0
+      ) {
+        return dishesToFilter;
+      }
+
+      return dishesToFilter.filter((dish) => {
+        if (selectedAllergens.length > 0 && dish.allergens?.length > 0) {
+          const hasSelectedAllergen = dish.allergens.some((allergen) =>
+            selectedAllergens.includes(allergen.toLowerCase())
+          );
+          if (hasSelectedAllergen) return false;
+        }
+
+        if (selectedDietary.length > 0) {
+          const isVeganSelected = selectedDietary.includes('vegan');
+          const isVegetarianSelected = selectedDietary.includes('vegetarian');
+
+          if (isVeganSelected && !dish.is_vegan) return false;
+          if (isVegetarianSelected && !isVeganSelected && !dish.is_vegetarian && !dish.is_vegan)
+            return false;
+        }
+
+        if (selectedSpicy !== null && dish.is_spicy !== selectedSpicy) {
+          return false;
+        }
+
+        if (selectedBadges.length > 0) {
+          if (selectedBadges.includes('new') && !dish.is_new) return false;
+          if (selectedBadges.includes('special') && !dish.is_special) return false;
+          if (selectedBadges.includes('popular') && !dish.is_popular) return false;
+          if (selectedBadges.includes('chef') && !dish.is_chef_recommendation) return false;
+        }
+
+        return true;
+      });
+    },
+    [selectedAllergens, selectedDietary, selectedSpicy, selectedBadges]
+  );
+
+  // Subcategory navigation
+  const handleSubcategoryClick = useCallback(
+    (subcategoryId: string) => {
+      setActiveSubcategory(subcategoryId);
+      const subcategory = subcategories.find((s: any) => s.id === subcategoryId);
+
+      if (subcategory?.name) {
+        const element = subcategoryRefs.current[subcategory.name];
+        if (element) {
+          const headerOffset = 120;
+          const elementPosition = element.getBoundingClientRect().top;
+          const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: 'smooth',
+          });
+        }
+      }
+    },
+    [subcategories]
+  );
+
+  // Scroll tracking (deferred)
+  useEffect(() => {
+    if (!subcategories || subcategories.length === 0) return;
+
+    // Defer scroll listener to after paint
+    const timeoutId = setTimeout(() => {
+      const handleScroll = () => {
+        const scrollPosition = window.scrollY + 250;
+
+        for (const subcategory of subcategories) {
+          const element = subcategoryRefs.current[subcategory.name];
+          if (element) {
+            const { offsetTop, offsetHeight } = element;
+            if (scrollPosition >= offsetTop && scrollPosition < offsetTop + offsetHeight) {
+              setActiveSubcategory(subcategory.id);
+              break;
+            }
+          }
+        }
+      };
+
+      window.addEventListener('scroll', handleScroll, { passive: true });
+      return () => window.removeEventListener('scroll', handleScroll);
+    }, 100);
+
+    return () => clearTimeout(timeoutId);
+  }, [subcategories]);
+
+  // Load filters after idle
+  useEffect(() => {
+    if ('requestIdleCallback' in window) {
+      const id = requestIdleCallback(() => setFiltersReady(true));
+      return () => cancelIdleCallback(id);
+    } else {
+      const id = setTimeout(() => setFiltersReady(true), 300);
+      return () => clearTimeout(id);
+    }
+  }, []);
+
+  // Filter handlers
+  const handleAllergenToggle = useCallback((allergen: string) => {
+    setSelectedAllergens((prev) =>
+      prev.includes(allergen) ? prev.filter((a) => a !== allergen) : [...prev, allergen]
+    );
+  }, []);
+
+  const handleDietaryToggle = useCallback((dietary: string) => {
+    setSelectedDietary((prev) =>
+      prev.includes(dietary) ? prev.filter((d) => d !== dietary) : [...prev, dietary]
+    );
+  }, []);
+
+  const handleSpicyToggle = useCallback((value: boolean | null) => {
+    setSelectedSpicy(value);
+  }, []);
+
+  const handleBadgeToggle = useCallback((badge: string) => {
+    setSelectedBadges((prev) =>
+      prev.includes(badge) ? prev.filter((b) => b !== badge) : [...prev, badge]
+    );
+  }, []);
+
+  const handleClearFilters = useCallback(() => {
+    setSelectedAllergens([]);
+    setSelectedDietary([]);
+    setSelectedSpicy(null);
+    setSelectedBadges([]);
+  }, []);
+
+  // Handle dish click from MenuGrid
+  const handleDishClick = useCallback((dish: DishDetail) => {
+    setSelectedDish(dish);
+  }, []);
+
+  const categoryNames = categories?.map((c) => c.name) || [];
+  const activeCategoryName = categories?.find((c) => c.id === activeCategory)?.name || '';
+
+  return (
+    <MenuThemeWrapper theme={restaurant?.theme} className="min-h-screen bg-background">
+
+      {/* Restaurant Hero */}
+      <RestaurantHeader
+        name={restaurant?.name || 'Restaurant Menu'}
+        tagline={restaurant?.tagline || ''}
+        heroImageUrl={restaurant?.hero_image_url}
+        menuFont={restaurant?.menu_font || 'Inter'}
+      />
+
+      {/* Category & Subcategory Navigation */}
+      <div className="z-40 bg-background border-b border-border">
+        <div className="flex items-center justify-between">
+          {categoryNames.length > 0 && activeCategoryName && (
+            <div className="flex-1">
+              <CategoryNav
+                categories={categoryNames}
+                activeCategory={activeCategoryName}
+                onCategoryChange={(name) => {
+                  const category = categories?.find((c) => c.name === name);
+                  if (category) {
+                    setActiveCategory(category.id);
+                    onCategoryChange?.(category.id);
+                  }
+                }}
+                menuFont={restaurant?.menu_font || 'Inter'}
+              />
+            </div>
+          )}
+
+          {/* Filter Button */}
+          {restaurant?.show_allergen_filter !== false && filtersReady && (
+            <Sheet open={filterOpen} onOpenChange={setFilterOpen}>
+              <SheetTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="icon"
+                  className="mr-4 relative rounded-lg border-border"
+                >
+                  <Filter className="h-4 w-4" />
+                  {(selectedAllergens.length > 0 ||
+                    selectedDietary.length > 0 ||
+                    selectedSpicy !== null ||
+                    selectedBadges.length > 0) && (
+                    <span className="absolute -top-1 -right-1 h-4 w-4 bg-destructive text-destructive-foreground text-xs rounded-full flex items-center justify-center">
+                      {selectedAllergens.length + selectedDietary.length + selectedBadges.length + (selectedSpicy !== null ? 1 : 0)}
+                    </span>
+                  )}
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+                <Suspense fallback={<div className="p-4">Loading filters...</div>}>
+                  <AllergenFilter
+                    selectedAllergens={selectedAllergens}
+                    selectedDietary={selectedDietary}
+                    selectedSpicy={selectedSpicy}
+                    selectedBadges={selectedBadges}
+                    onAllergenToggle={handleAllergenToggle}
+                    onDietaryToggle={handleDietaryToggle}
+                    onSpicyToggle={handleSpicyToggle}
+                    onBadgeToggle={handleBadgeToggle}
+                    onClear={handleClearFilters}
+                    allergenOrder={restaurant.allergen_filter_order as string[] | undefined}
+                    dietaryOrder={restaurant.dietary_filter_order as string[] | undefined}
+                    badgeOrder={restaurant.badge_display_order as string[] | undefined}
+                  />
+                </Suspense>
+              </SheetContent>
+            </Sheet>
+          )}
+        </div>
+
+        {subcategories && subcategories.length > 0 && (
+          <SubcategoryNav
+            subcategories={subcategories.map((s: any) => s.name)}
+            activeSubcategory={subcategories.find((s: any) => s.id === activeSubcategory)?.name || ''}
+            onSubcategoryChange={(name) => {
+              const subcategory = subcategories.find((s: any) => s.name === name);
+              if (subcategory) handleSubcategoryClick(subcategory.id);
+            }}
+            menuFont={restaurant?.menu_font || 'Inter'}
+          />
+        )}
+      </div>
+
+      {/* Main Content - Progressive Render */}
+      <main>
+        {subcategories?.map((subcategory: any, index: number) => {
+          const subcategoryDishes = dishesBySubcategory[subcategory.name] || [];
+          const filteredDishes = getFilteredDishes(subcategoryDishes);
+
+          if (filteredDishes.length === 0) return null;
+
+          const transformedDishes = filteredDishes.map((dish) => ({
+            id: dish.id,
+            name: dish.name,
+            description: dish.description,
+            price: dish.price,
+            image: dish.image_url || '/placeholder.svg',
+            isNew: dish.is_new,
+            isSpecial: dish.is_special,
+            isPopular: dish.is_popular,
+            isChefRecommendation: dish.is_chef_recommendation,
+            category: activeCategoryName,
+            subcategory: subcategory.name,
+            allergens: dish.allergens || [],
+            calories: dish.calories,
+            isVegetarian: dish.is_vegetarian,
+            isVegan: dish.is_vegan,
+            isSpicy: dish.is_spicy,
+            hasOptions: dish.has_options || (dish.options?.length ?? 0) > 0,
+            options: dish.options || [],
+            modifiers: dish.modifiers || [],
+          }));
+
+          // Render first subcategory immediately, defer others
+          if (index > 0) {
+            return (
+              <div
+                key={subcategory.id}
+                ref={(el) => {
+                  subcategoryRefs.current[subcategory.name] = el;
+                }}
+                style={{ contentVisibility: 'auto' }}
+              >
+                <MenuGrid 
+                  dishes={transformedDishes} 
+                  sectionTitle={subcategory.name}
+                  gridColumns={restaurant.grid_columns || 2}
+                  layoutDensity={restaurant.layout_density || 'compact'}
+                  fontSize={restaurant.menu_font_size || 'medium'}
+                  showPrice={restaurant.show_prices !== false}
+                  showImage={restaurant.show_images !== false}
+                  showAllergens={restaurant.show_allergens_on_cards !== false}
+                  imageSize={restaurant.image_size || 'compact'}
+                  forceTwoDecimals={restaurant.force_two_decimals === true}
+                  showCurrencySymbol={restaurant.show_currency_symbol !== false}
+                  layoutStyle={restaurant.layout_style || 'generic'}
+                  badgeColors={restaurant.badge_colors}
+                  cardImageShape={restaurant.card_image_shape || 'vertical'}
+                  textOverlay={restaurant.text_overlay === true}
+                  menuFont={restaurant.menu_font || 'Inter'}
+                  onDishClick={handleDishClick}
+                />
+              </div>
+            );
+          }
+
+          return (
+            <div
+              key={subcategory.id}
+              ref={(el) => {
+                subcategoryRefs.current[subcategory.name] = el;
+              }}
+            >
+              <MenuGrid 
+                dishes={transformedDishes} 
+                sectionTitle={subcategory.name}
+                gridColumns={restaurant.grid_columns || 2}
+                layoutDensity={restaurant.layout_density || 'compact'}
+                fontSize={restaurant.menu_font_size || 'medium'}
+                showPrice={restaurant.show_prices !== false}
+                showImage={restaurant.show_images !== false}
+                showAllergens={restaurant.show_allergens_on_cards !== false}
+                imageSize={restaurant.image_size || 'compact'}
+                forceTwoDecimals={restaurant.force_two_decimals === true}
+                showCurrencySymbol={restaurant.show_currency_symbol !== false}
+                layoutStyle={restaurant.layout_style || 'generic'}
+                badgeColors={restaurant.badge_colors}
+                cardImageShape={restaurant.card_image_shape || 'vertical'}
+                textOverlay={restaurant.text_overlay === true}
+                menuFont={restaurant.menu_font || 'Inter'}
+                onDishClick={handleDishClick}
+              />
+            </div>
+          );
+        })}
+      </main>
+
+      {/* Single shared dish detail dialog */}
+      <DishDetailDialog
+        dish={selectedDish}
+        open={!!selectedDish}
+        onOpenChange={(open) => !open && setSelectedDish(null)}
+        forceTwoDecimals={restaurant.force_two_decimals === true}
+        showCurrencySymbol={restaurant.show_currency_symbol !== false}
+        menuFont={restaurant.menu_font || 'Inter'}
+        cardImageShape={restaurant.card_image_shape || 'vertical'}
+      />
+
+    </MenuThemeWrapper>
+  );
+};
+
+export default PublicMenuStatic;

@@ -2,8 +2,8 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+const SUPABASE_URL = "https://owagekqtnfiwgvlmnhar.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93YWdla3F0bmZpd2d2bG1uaGFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI2MDg0ODgsImV4cCI6MjA2ODE4NDQ4OH0.TSN3aW3Qyue_UAp5aHqX-dnl-92aeMHb2-4e_TTWcP4";
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
@@ -13,20 +13,5 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: true,
-  },
-  global: {
-      headers: {
-        'x-client-info': 'menutap-app',
-      },
-  },
-  db: {
-    schema: 'public',
-  },
-  // Optimize realtime connection
-  realtime: {
-    params: {
-      eventsPerSecond: 10,
-    },
-  },
+  }
 });

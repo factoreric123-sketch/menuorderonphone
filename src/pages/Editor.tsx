@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useRestaurantById, useUpdateRestaurant } from "@/hooks/useRestaurants";
 import { useCategories } from "@/hooks/useCategories";
@@ -41,6 +42,7 @@ const Editor = () => {
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [importData, setImportData] = useState<any[]>([]);
   const subcategoryRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+  const [menuUrl, setMenuUrl] = useState<string | undefined>();
 
   const { data: restaurant, isLoading: restaurantLoading, refetch: refetchRestaurant } = useRestaurantById(restaurantId || "");
   const { data: categories = [], isLoading: categoriesLoading } = useCategories(restaurantId || "");
@@ -51,6 +53,23 @@ const Editor = () => {
   // Use same data source as Live Menu for Preview - instant sync!
   // Disable localStorage cache for Editor Preview to ensure optimistic updates take effect
   const { data: fullMenuData, refetch: refetchFullMenu } = useFullMenu(restaurantId, { useLocalStorageCache: false });
+
+  // Fetch menu_links for the restaurant to build menuUrl for TableManager
+  useEffect(() => {
+    if (!restaurantId) return;
+    supabase
+      .from('menu_links')
+      .select('restaurant_hash, menu_id')
+      .eq('restaurant_id', restaurantId)
+      .eq('active', true)
+      .limit(1)
+      .single()
+      .then(({ data }) => {
+        if (data) {
+          setMenuUrl(`/m/${data.restaurant_hash}/${data.menu_id}`);
+        }
+      });
+  }, [restaurantId]);
 
   // Listen to all dish mutations to detect changes
   useEffect(() => {
@@ -430,6 +449,7 @@ const Editor = () => {
           setImportData(data);
           setShowImportDialog(true);
         }}
+        menuUrl={menuUrl}
       />
 
       {/* Menu content wrapped in theme - each restaurant gets its own theme */}

@@ -90,6 +90,14 @@ const App = () => (
               }
             />
             <Route
+              path="/dashboard/:restaurantId/tickets"
+              element={
+                <ProtectedRoute>
+                  <Kitchen />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/dashboard"
               element={
                 <ProtectedRoute>

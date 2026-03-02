@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Restaurant, useDeleteRestaurant } from "@/hooks/useRestaurants";
 import { Button } from "@/components/ui/button";
-import { Edit, ExternalLink, Trash2 } from "lucide-react";
+import { Edit, ExternalLink, Trash2, ReceiptText } from "lucide-react";
 import restaurantHeroPlaceholder from "@/assets/restaurant-hero.jpg";
 import { memo, useCallback } from "react";
 import {
@@ -36,6 +36,10 @@ export const RestaurantCard = memo(({ restaurant }: RestaurantCardProps) => {
     deleteRestaurant.mutate(restaurant.id);
   }, [deleteRestaurant, restaurant.id]);
 
+  const handleTickets = useCallback(() => {
+    navigate(`/dashboard/${restaurant.id}/tickets`);
+  }, [navigate, restaurant.id]);
+
   return (
     <div className="border border-border rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
       <div className="aspect-video bg-muted overflow-hidden">
@@ -61,7 +65,8 @@ export const RestaurantCard = memo(({ restaurant }: RestaurantCardProps) => {
           </span>
         </div>
 
-        <div className="flex gap-2">
+        <div className="space-y-2">
+          <div className="flex gap-2">
           <Button
             onClick={handleEdit}
             className="flex-1"
@@ -99,6 +104,15 @@ export const RestaurantCard = memo(({ restaurant }: RestaurantCardProps) => {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+          </div>
+          <Button
+            variant="secondary"
+            onClick={handleTickets}
+            className="w-full"
+          >
+            <ReceiptText className="h-4 w-4 mr-2" />
+            Ticket Dashboard
+          </Button>
         </div>
       </div>
     </div>

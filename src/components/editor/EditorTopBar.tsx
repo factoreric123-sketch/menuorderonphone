@@ -630,12 +630,12 @@ export const EditorTopBar = ({
                             variant="ghost"
                             className="w-full justify-start gap-2"
                             onClick={() => {
-                              navigate(`/kitchen/${restaurant.id}`);
+                              navigate(`/dashboard/${restaurant.id}/tickets`);
                               setShowMobileMenu(false);
                             }}
                           >
                             <UtensilsCrossed className="h-4 w-4" />
-                            Kitchen Board
+                            Ticket Dashboard
                           </Button>
                         </div>
                       )}
@@ -765,11 +765,11 @@ export const EditorTopBar = ({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => navigate(`/kitchen/${restaurant.id}`)}
+                    onClick={() => navigate(`/dashboard/${restaurant.id}/tickets`)}
                     className="gap-2"
                   >
                     <UtensilsCrossed className="h-4 w-4" />
-                    Kitchen
+                    Tickets
                   </Button>
                 </>
               )}

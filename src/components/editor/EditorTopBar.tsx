@@ -330,7 +330,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Eye, EyeOff, QrCode, Palette, Upload, Undo2, Redo2, LayoutGrid, Table2, Settings, Share2, RefreshCw, Check, Menu, X, UtensilsCrossed } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, QrCode, Palette, Upload, Undo2, Redo2, LayoutGrid, Table2, Settings, Share2, RefreshCw, Check, Menu, X, UtensilsCrossed, ClipboardList } from "lucide-react";
 import { TableManager } from "@/components/editor/TableManager";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { QRCodeModal } from "@/components/editor/QRCodeModal";
@@ -630,6 +630,17 @@ export const EditorTopBar = ({
                             variant="ghost"
                             className="w-full justify-start gap-2"
                             onClick={() => {
+                              navigate(`/dashboard/${restaurant.id}/orders`);
+                              setShowMobileMenu(false);
+                            }}
+                          >
+                            <ClipboardList className="h-4 w-4" />
+                            Manage Orders
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            className="w-full justify-start gap-2"
+                            onClick={() => {
                               navigate(`/dashboard/${restaurant.id}/tickets`);
                               setShowMobileMenu(false);
                             }}
@@ -760,6 +771,16 @@ export const EditorTopBar = ({
                   >
                     <Table2 className="h-4 w-4" />
                     Tables
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate(`/dashboard/${restaurant.id}/orders`)}
+                    className="gap-2"
+                  >
+                    <ClipboardList className="h-4 w-4" />
+                    Orders
                   </Button>
 
                   <Button

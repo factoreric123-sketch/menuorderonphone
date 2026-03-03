@@ -1,53 +1,55 @@
 
 
-# Wire Up the Complete QR Ordering Flow
+# Admin Portal for Order Management
 
 ## Current State
 
-The full ordering system is already built but has one critical gap: the **Table Manager** component exists (`src/components/editor/TableManager.tsx`) but is **not wired into the Editor page**. Without it, restaurant owners can't create tables or generate QR codes.
+The app already has a **Kitchen ticket board** (`/dashboard/:restaurantId/tickets`) focused on real-time station work. But there's no proper admin view for restaurant owners to manage all orders holistically -- seeing payment status, order history, cancelling/refunding, filtering by date, etc.
 
-Everything else is functional end-to-end:
-- Guest scans QR -> `MenuShortDisplay` reads the `?table=` param -> passes `tableQrCodeId` to `PublicMenuStatic`
-- `PublicMenuStatic` shows the menu with cart FAB and "Add to Cart" in dish detail dialogs
-- Cart drawer -> Checkout page -> calls `create-order` edge function
-- Order status page with live Supabase Realtime updates
-- Kitchen ticket board at `/kitchen/:restaurantId` with station filtering and status cycling
+## What to Build
 
-## What Needs to Happen
+A new **Orders Admin page** at `/dashboard/:restaurantId/orders` with two views:
 
-### 1. Add Table Manager to the Editor
-Wire the `TableManager` component into the Editor page so owners can:
-- Create tables (e.g., "Table 1", "Bar Seat 3")
-- Generate per-table QR codes that encode `?table={qr_code_id}`
-- Download QR code PNGs
+### 1. Active Orders Panel (default view)
+- Real-time list of all non-completed orders in a clean table layout
+- Columns: Order #, Guest Name, Table, Items summary, Total, Payment Status, Order Status, Time, Actions
+- Actions per order: View details (expand), Advance status, Cancel, Print
+- Color-coded payment status badges (paid/unpaid/refunded)
+- Auto-refreshes via Supabase Realtime (reuses the same pattern as Kitchen.tsx)
 
-This will be added as a new section or tab in the Editor, accessible via a "Tables" button in the `EditorTopBar`. The `menuUrl` prop needs to be populated from the restaurant's existing `menu_links` data.
+### 2. Order History Tab
+- All completed/cancelled orders in a searchable, filterable table
+- Date range filter, status filter, payment status filter
+- Expandable rows showing full item details
+- Summary stats at top: total orders today, total revenue, average order value
 
-### 2. Add Kitchen Board Link to Dashboard/Editor
-Add a visible way for owners to navigate to `/kitchen/:restaurantId` from the Editor or Dashboard, so they can monitor incoming orders.
+### 3. Order Detail Expandable Row
+- Full item list with quantities, options, modifiers, special instructions
+- Guest info (name, phone, table)
+- Timeline of status changes
+- Payment info (method, status, stripe ID if applicable)
+- Actions: mark paid (for pay-at-table), cancel, reprint
 
-### 3. Verify Edge Function Deployment
-Ensure the `create-order` edge function is deployed and working, since it's the backbone of the ordering flow.
+### Navigation
+- Add an **"Orders"** button to `RestaurantCard` on the Dashboard (alongside existing "Ticket Dashboard")
+- Add the route `/dashboard/:restaurantId/orders` to App.tsx
+- Link from the Kitchen board header to the Orders admin and vice versa
 
----
+## Files to Create/Modify
 
-## Technical Details
-
-### Editor Changes (`src/pages/Editor.tsx`)
-- Import `TableManager` from `@/components/editor/TableManager`
-- Fetch the restaurant's `menu_links` to get the base menu URL (`/m/{hash}/{menuId}`)
-- Add a "Tables & QR" button/tab in the editor that reveals the `TableManager`
-- Pass `restaurantId` and `menuUrl` props
-
-### EditorTopBar Changes (`src/components/editor/EditorTopBar.tsx`)
-- Add a "Tables" or "QR Codes" button that toggles a panel/dialog showing the `TableManager`
-- Add a "Kitchen Board" link button that opens `/kitchen/:restaurantId`
-
-### File Changes Summary
 | File | Change |
 |------|--------|
-| `src/pages/Editor.tsx` | Import TableManager, fetch menu_links, add Tables section |
-| `src/components/editor/EditorTopBar.tsx` | Add "Tables" and "Kitchen" buttons |
+| `src/pages/OrdersAdmin.tsx` | **New** - Full orders management page with tabs (Active / History) |
+| `src/App.tsx` | Add route for `/dashboard/:restaurantId/orders` |
+| `src/components/RestaurantCard.tsx` | Add "Manage Orders" button |
+| `src/pages/Kitchen.tsx` | Add link to Orders Admin in header |
 
-No database changes needed -- all tables (`restaurant_tables`, `orders`, `order_items`, `stations`) already exist with proper RLS policies.
+## Technical Approach
+
+- Reuse the same Supabase Realtime subscription pattern from Kitchen.tsx
+- Use the existing `Table`, `TableHeader`, `TableBody`, `TableRow`, `TableCell` UI components for the order list
+- Use `Tabs` component for Active/History switching
+- Use `Collapsible` for expandable order detail rows
+- Date filtering with `date-fns` (already installed)
+- No database changes needed -- all data is already in `orders` and `order_items` tables with proper RLS
 

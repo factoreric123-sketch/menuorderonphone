@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Restaurant, useDeleteRestaurant } from "@/hooks/useRestaurants";
 import { Button } from "@/components/ui/button";
-import { Edit, ExternalLink, Trash2, ReceiptText } from "lucide-react";
+import { Edit, ExternalLink, Trash2, ReceiptText, ClipboardList } from "lucide-react";
 import restaurantHeroPlaceholder from "@/assets/restaurant-hero.jpg";
 import { memo, useCallback } from "react";
 import {
@@ -38,6 +38,10 @@ export const RestaurantCard = memo(({ restaurant }: RestaurantCardProps) => {
 
   const handleTickets = useCallback(() => {
     navigate(`/dashboard/${restaurant.id}/tickets`);
+  }, [navigate, restaurant.id]);
+
+  const handleOrders = useCallback(() => {
+    navigate(`/dashboard/${restaurant.id}/orders`);
   }, [navigate, restaurant.id]);
 
   return (
@@ -105,14 +109,24 @@ export const RestaurantCard = memo(({ restaurant }: RestaurantCardProps) => {
             </AlertDialogContent>
           </AlertDialog>
           </div>
-          <Button
-            variant="secondary"
-            onClick={handleTickets}
-            className="w-full"
-          >
-            <ReceiptText className="h-4 w-4 mr-2" />
-            Ticket Dashboard
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              onClick={handleOrders}
+              className="flex-1"
+            >
+              <ClipboardList className="h-4 w-4 mr-2" />
+              Orders
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={handleTickets}
+              className="flex-1"
+            >
+              <ReceiptText className="h-4 w-4 mr-2" />
+              Kitchen
+            </Button>
+          </div>
         </div>
       </div>
     </div>

@@ -32,6 +32,7 @@ import BusinessCard from "./pages/BusinessCard";
 import Checkout from "./pages/Checkout";
 import OrderStatus from "./pages/OrderStatus";
 import Kitchen from "./pages/Kitchen";
+import OrdersAdmin from "./pages/OrdersAdmin";
 
 // Apple-level instant loading configuration
 const queryClient = new QueryClient({
@@ -94,6 +95,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Kitchen />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/:restaurantId/orders"
+              element={
+                <ProtectedRoute>
+                  <OrdersAdmin />
                 </ProtectedRoute>
               }
             />

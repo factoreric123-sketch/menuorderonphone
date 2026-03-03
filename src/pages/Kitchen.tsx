@@ -4,7 +4,7 @@ import type { Database } from '@/integrations/supabase/types';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Clock, ChefHat, CheckCircle2, RefreshCw, Printer, Store } from 'lucide-react';
+import { ArrowLeft, Clock, ChefHat, CheckCircle2, RefreshCw, Printer, Store, ClipboardList } from 'lucide-react';
 import { toast } from 'sonner';
 
 type Order = Database['public']['Tables']['orders']['Row'];
@@ -312,6 +312,9 @@ const Kitchen = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => navigate(`/dashboard/${restaurantId}/orders`)}>
+              <ClipboardList className="h-4 w-4 mr-1" /> Orders
+            </Button>
             <Button
               variant={showCompleted ? 'default' : 'outline'}
               size="sm"

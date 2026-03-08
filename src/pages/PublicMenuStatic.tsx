@@ -109,7 +109,10 @@ const PublicMenuStatic = ({ restaurant, categories, onCategoryChange, tableQrCod
     subcategories.forEach((subcategory: any) => {
       if (subcategory.dishes) {
         subcategory.dishes.forEach((dish: any) => {
-          dishes.push(dish);
+          // Filter out unavailable dishes on public menu
+          if (dish.available !== false) {
+            dishes.push(dish);
+          }
         });
       }
     });

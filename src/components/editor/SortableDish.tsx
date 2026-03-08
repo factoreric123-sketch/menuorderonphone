@@ -64,6 +64,7 @@ const SortableDishInner = ({ dish, subcategoryId, restaurantId, forceTwoDecimals
   const [localSpecial, setLocalSpecial] = useState(dish.is_special);
   const [localPopular, setLocalPopular] = useState(dish.is_popular);
   const [localChefRec, setLocalChefRec] = useState(dish.is_chef_recommendation);
+  const [localAvailable, setLocalAvailable] = useState(dish.available !== false);
   // CRITICAL FIX: Track has_options locally to sync with DishOptionsEditor saves
   const [localHasOptions, setLocalHasOptions] = useState(dish.has_options);
   

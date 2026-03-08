@@ -44,6 +44,10 @@ export const RestaurantCard = memo(({ restaurant }: RestaurantCardProps) => {
     navigate(`/dashboard/${restaurant.id}/orders`);
   }, [navigate, restaurant.id]);
 
+  const handleFloorPlan = useCallback(() => {
+    navigate(`/dashboard/${restaurant.id}/floor-plan`);
+  }, [navigate, restaurant.id]);
+
   return (
     <div className="border border-border rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
       <div className="aspect-video bg-muted overflow-hidden">

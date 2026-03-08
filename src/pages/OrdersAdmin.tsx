@@ -15,10 +15,11 @@ import { Input } from '@/components/ui/input';
 import {
   ArrowLeft, ChevronDown, ChevronRight, RefreshCw, Search,
   ClipboardList, ChefHat, DollarSign, ShoppingBag, TrendingUp, XCircle,
-  CheckCircle2, Printer, Store,
+  CheckCircle2, Printer, Store, Volume2, VolumeX,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, isToday, parseISO, startOfDay, endOfDay, subDays } from 'date-fns';
+import { useNewOrderAlert } from '@/hooks/useNewOrderAlert';
 
 type Order = Database['public']['Tables']['orders']['Row'];
 type OrderItem = Database['public']['Tables']['order_items']['Row'];

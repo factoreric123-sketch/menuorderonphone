@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Restaurant, useDeleteRestaurant } from "@/hooks/useRestaurants";
 import { Button } from "@/components/ui/button";
-import { Edit, ExternalLink, Trash2, ReceiptText, ClipboardList } from "lucide-react";
+import { Edit, ExternalLink, Trash2, ReceiptText, ClipboardList, LayoutGrid } from "lucide-react";
 import restaurantHeroPlaceholder from "@/assets/restaurant-hero.jpg";
 import { memo, useCallback } from "react";
 import {

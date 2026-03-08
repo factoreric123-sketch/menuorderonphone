@@ -530,6 +530,21 @@ const SortableDishInner = ({ dish, subcategoryId, restaurantId, forceTwoDecimals
                     onCheckedChange={() => handleToggle("is_chef_recommendation", localChefRec, setLocalChefRec)}
                   />
                 </div>
+
+                {/* Available Toggle */}
+                <div className="flex items-center justify-between pt-2 border-t border-border">
+                  <Label htmlFor={`available-${dish.id}`} className="text-xs flex items-center gap-1.5 font-semibold">
+                    Available
+                  </Label>
+                  <Switch
+                    id={`available-${dish.id}`}
+                    checked={localAvailable}
+                    onCheckedChange={() => {
+                      setLocalAvailable(!localAvailable);
+                      scheduleUpdate({ available: !localAvailable });
+                    }}
+                  />
+                </div>
               </div>
             </CollapsibleContent>
           </Collapsible>

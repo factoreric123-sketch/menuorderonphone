@@ -103,6 +103,9 @@ const OrderStatus = () => {
           <p className="text-muted-foreground text-sm">
             Order for <span className="font-medium text-foreground">{order.guest_name}</span>
           </p>
+          <p className="font-mono text-xs text-muted-foreground">
+            Order #{order.id.slice(0, 8).toUpperCase()}
+          </p>
         </div>
 
         {/* Status Steps */}

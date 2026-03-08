@@ -659,26 +659,41 @@ export type Database = {
         Row: {
           active: boolean
           created_at: string
+          height: number | null
           id: string
           label: string
+          position_x: number | null
+          position_y: number | null
           qr_code_id: string
           restaurant_id: string
+          shape: string | null
+          width: number | null
         }
         Insert: {
           active?: boolean
           created_at?: string
+          height?: number | null
           id?: string
           label: string
+          position_x?: number | null
+          position_y?: number | null
           qr_code_id: string
           restaurant_id: string
+          shape?: string | null
+          width?: number | null
         }
         Update: {
           active?: boolean
           created_at?: string
+          height?: number | null
           id?: string
           label?: string
+          position_x?: number | null
+          position_y?: number | null
           qr_code_id?: string
           restaurant_id?: string
+          shape?: string | null
+          width?: number | null
         }
         Relationships: [
           {

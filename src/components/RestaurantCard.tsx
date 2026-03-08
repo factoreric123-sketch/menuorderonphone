@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Restaurant, useDeleteRestaurant } from "@/hooks/useRestaurants";
 import { Button } from "@/components/ui/button";
-import { Edit, ExternalLink, Trash2, ReceiptText, ClipboardList } from "lucide-react";
+import { Edit, ExternalLink, Trash2, ReceiptText, ClipboardList, LayoutGrid } from "lucide-react";
 import restaurantHeroPlaceholder from "@/assets/restaurant-hero.jpg";
 import { memo, useCallback } from "react";
 import {
@@ -42,6 +42,10 @@ export const RestaurantCard = memo(({ restaurant }: RestaurantCardProps) => {
 
   const handleOrders = useCallback(() => {
     navigate(`/dashboard/${restaurant.id}/orders`);
+  }, [navigate, restaurant.id]);
+
+  const handleFloorPlan = useCallback(() => {
+    navigate(`/dashboard/${restaurant.id}/floor-plan`);
   }, [navigate, restaurant.id]);
 
   return (
@@ -127,6 +131,14 @@ export const RestaurantCard = memo(({ restaurant }: RestaurantCardProps) => {
               Kitchen
             </Button>
           </div>
+          <Button
+            variant="outline"
+            onClick={handleFloorPlan}
+            className="w-full"
+          >
+            <LayoutGrid className="h-4 w-4 mr-2" />
+            Floor Plan
+          </Button>
         </div>
       </div>
     </div>

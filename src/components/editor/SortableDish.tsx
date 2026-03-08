@@ -87,6 +87,7 @@ const SortableDishInner = ({ dish, subcategoryId, restaurantId, forceTwoDecimals
       setLocalSpecial(dish.is_special);
       setLocalPopular(dish.is_popular);
       setLocalChefRec(dish.is_chef_recommendation);
+      setLocalAvailable(dish.available !== false);
       setLocalHasOptions(dish.has_options);
     }
   }, [dish.id]);

@@ -385,6 +385,14 @@ const OrdersAdmin = () => {
             <Button variant="outline" size="sm" onClick={() => navigate(`/dashboard/${restaurantId}/tickets`)}>
               <ChefHat className="h-4 w-4 mr-1" /> Kitchen Board
             </Button>
+            <Button
+              variant={soundEnabled ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              title={soundEnabled ? 'Sound alerts on' : 'Sound alerts off'}
+            >
+              {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+            </Button>
             <Button variant="outline" size="sm" onClick={fetchOrders}>
               <RefreshCw className="h-4 w-4 mr-1" /> Refresh
             </Button>

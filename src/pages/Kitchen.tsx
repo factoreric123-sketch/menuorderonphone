@@ -41,6 +41,9 @@ const Kitchen = () => {
   const [restaurantName, setRestaurantName] = useState('');
   const [showCompleted, setShowCompleted] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const { playAlert } = useNewOrderAlert();
+  const prevOrderCount = useRef<number | null>(null);
 
   const fetchData = useCallback(async () => {
     if (!restaurantId) return;

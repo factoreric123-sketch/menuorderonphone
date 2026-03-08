@@ -658,7 +658,7 @@ export const EditorTopBar = ({
           </div>
 
           {/* Desktop Layout */}
-          <div className="hidden lg:flex items-center justify-between gap-4">
+          <div className="hidden md:flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 shrink-0">
               <Button
                 variant="ghost"

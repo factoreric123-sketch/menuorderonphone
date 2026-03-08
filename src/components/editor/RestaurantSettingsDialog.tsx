@@ -221,6 +221,54 @@ export const RestaurantSettingsDialog = ({
         </DialogHeader>
         
         <div className="space-y-6 py-4">
+          {/* Ordering & Operations */}
+          <div>
+            <h3 className="text-sm font-semibold mb-4">Ordering & Operations</h3>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="ordering-enabled" className="text-base">
+                    Online Ordering
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Allow customers to place orders from the menu
+                  </p>
+                </div>
+                <Switch
+                  id="ordering-enabled"
+                  checked={restaurant.ordering_enabled === true}
+                  onCheckedChange={(checked) => updateSetting("ordering_enabled", checked)}
+                  disabled={isUpdating}
+                />
+              </div>
+
+              <div>
+                <Label className="text-base mb-2 block">Tax Rate (%)</Label>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Applied automatically to all orders
+                </p>
+                <Input
+                  type="number"
+                  min="0"
+                  max="25"
+                  step="0.01"
+                  placeholder="e.g. 8.25"
+                  defaultValue={restaurant.tax_rate ? (restaurant.tax_rate * 100).toFixed(2) : ''}
+                  onChange={(e) => {
+                    const pct = parseFloat(e.target.value);
+                    if (!isNaN(pct) && pct >= 0 && pct <= 25) {
+                      updateSetting("tax_rate", pct / 100);
+                    }
+                  }}
+                  disabled={isUpdating}
+                  className="w-32"
+                />
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
           {/* Visibility Options */}
           <div>
             <h3 className="text-sm font-semibold mb-4">Visibility Options</h3>

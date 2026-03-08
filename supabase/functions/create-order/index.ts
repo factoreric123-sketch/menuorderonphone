@@ -26,6 +26,27 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // Fetch restaurant to check ordering_enabled and tax_rate
+    const { data: restaurant, error: restError } = await supabase
+      .from("restaurants")
+      .select("id, ordering_enabled, tax_rate")
+      .eq("id", restaurant_id)
+      .single();
+
+    if (restError || !restaurant) {
+      return new Response(JSON.stringify({ error: "Restaurant not found" }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!restaurant.ordering_enabled) {
+      return new Response(JSON.stringify({ error: "Online ordering is currently disabled for this restaurant" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Resolve table_id from qr_code_id
     let tableId: string | null = null;
     if (table_qr_code_id) {
@@ -43,12 +64,23 @@ serve(async (req) => {
     const dishIds = items.map((i: any) => i.dish_id);
     const { data: dishes, error: dishError } = await supabase
       .from("dishes")
-      .select("id, name, price, has_options")
+      .select("id, name, price, has_options, available")
       .in("id", dishIds);
 
     if (dishError || !dishes) {
       return new Response(JSON.stringify({ error: "Failed to validate dishes" }), {
         status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Check for unavailable items
+    const unavailable = dishes.filter((d: any) => d.available === false);
+    if (unavailable.length > 0) {
+      return new Response(JSON.stringify({
+        error: `These items are currently unavailable: ${unavailable.map((d: any) => d.name).join(", ")}`,
+      }), {
+        status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -68,8 +100,8 @@ serve(async (req) => {
       });
     }
 
-    // Build validated order items and compute total
-    let totalCents = 0;
+    // Build validated order items and compute subtotal
+    let subtotalCents = 0;
     const validatedItems: any[] = [];
 
     for (const item of items) {
@@ -91,13 +123,10 @@ serve(async (req) => {
         unitPriceCents = Math.round(parseFloat(dish.price.replace(/[^0-9.]/g, "")) * 100);
       }
 
-      // TODO: validate modifier prices similarly if needed
       const modifierNames = item.selected_modifier_names || [];
-      // For now trust modifier subtotals from client (modifier price validation can be added)
-      
       const quantity = Math.max(1, Math.min(99, parseInt(item.quantity) || 1));
-      const subtotalCents = unitPriceCents * quantity;
-      totalCents += subtotalCents;
+      const itemSubtotalCents = unitPriceCents * quantity;
+      subtotalCents += itemSubtotalCents;
 
       validatedItems.push({
         dish_id: item.dish_id,
@@ -106,11 +135,16 @@ serve(async (req) => {
         unit_price_cents: unitPriceCents,
         selected_option_name: optionName,
         selected_modifier_names: modifierNames,
-        subtotal_cents: subtotalCents,
+        subtotal_cents: itemSubtotalCents,
         special_instructions: item.special_instructions || null,
         station: "kitchen",
       });
     }
+
+    // Calculate tax
+    const taxRate = parseFloat(restaurant.tax_rate) || 0;
+    const taxCents = Math.round(subtotalCents * taxRate);
+    const totalCents = subtotalCents + taxCents;
 
     // Create order
     const { data: order, error: orderError } = await supabase
@@ -122,6 +156,7 @@ serve(async (req) => {
         guest_phone: guest_phone || null,
         payment_method: payment_method || "pay_at_table",
         total_cents: totalCents,
+        tax_cents: taxCents,
         notes: notes || null,
         status: "pending",
         payment_status: payment_method === "pay_at_table" ? "unpaid" : "unpaid",
@@ -155,6 +190,8 @@ serve(async (req) => {
       JSON.stringify({
         order_id: order.id,
         session_token: order.session_token,
+        subtotal_cents: subtotalCents,
+        tax_cents: taxCents,
         total_cents: totalCents,
       }),
       {

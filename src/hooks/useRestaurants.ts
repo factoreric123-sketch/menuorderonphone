@@ -41,6 +41,8 @@ export interface Restaurant {
   text_overlay?: boolean;
   menu_font?: string;
   show_allergens_on_cards?: boolean;
+  ordering_enabled?: boolean;
+  tax_rate?: number;
 }
 
 export const useRestaurants = () => {

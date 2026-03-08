@@ -324,6 +324,14 @@ const Kitchen = () => {
               <ClipboardList className="h-4 w-4 mr-1" /> Orders
             </Button>
             <Button
+              variant={soundEnabled ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              title={soundEnabled ? 'Sound alerts on' : 'Sound alerts off'}
+            >
+              {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+            </Button>
+            <Button
               variant={showCompleted ? 'default' : 'outline'}
               size="sm"
               onClick={() => setShowCompleted((prev) => !prev)}

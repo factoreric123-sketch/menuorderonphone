@@ -700,6 +700,27 @@ export const EditorTopBar = ({
                 )}
               </Button>
 
+              {/* Orders & Kitchen — always visible, right after Preview */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate(`/dashboard/${restaurant.id}/orders`)}
+                className="gap-2"
+              >
+                <ClipboardList className="h-4 w-4" />
+                Orders
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate(`/dashboard/${restaurant.id}/tickets`)}
+                className="gap-2"
+              >
+                <UtensilsCrossed className="h-4 w-4" />
+                Kitchen
+              </Button>
+
               {!previewMode && (
                 <>
                   <Button
@@ -771,26 +792,6 @@ export const EditorTopBar = ({
                   >
                     <Table2 className="h-4 w-4" />
                     Tables
-                  </Button>
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigate(`/dashboard/${restaurant.id}/orders`)}
-                    className="gap-2"
-                  >
-                    <ClipboardList className="h-4 w-4" />
-                    Orders
-                  </Button>
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigate(`/dashboard/${restaurant.id}/tickets`)}
-                    className="gap-2"
-                  >
-                    <UtensilsCrossed className="h-4 w-4" />
-                    Tickets
                   </Button>
                 </>
               )}

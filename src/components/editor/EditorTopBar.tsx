@@ -459,7 +459,7 @@ export const EditorTopBar = ({
       <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-3 sm:px-4 py-2 sm:py-3">
           {/* Mobile Layout */}
-          <div className="flex lg:hidden items-center justify-between gap-2">
+          <div className="flex md:hidden items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0 flex-1">
               <Button
                 variant="ghost"
@@ -657,9 +657,9 @@ export const EditorTopBar = ({
             </div>
           </div>
 
-          {/* Desktop Layout - UNCHANGED */}
-          <div className="hidden lg:flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
+          {/* Desktop Layout */}
+          <div className="hidden md:flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 shrink-0">
               <Button
                 variant="ghost"
                 size="sm"
@@ -680,7 +680,7 @@ export const EditorTopBar = ({
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
               <Button
                 variant="outline"
                 size="sm"

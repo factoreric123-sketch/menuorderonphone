@@ -58,6 +58,8 @@ const OrdersAdmin = () => {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [dateRange, setDateRange] = useState<'today' | '7d' | '30d' | 'all'>('today');
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const { playAlert } = useNewOrderAlert();
 
   const fetchOrders = useCallback(async () => {
     if (!restaurantId) return;

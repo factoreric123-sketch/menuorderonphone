@@ -122,7 +122,11 @@ const Kitchen = () => {
 
     const channel = supabase
       .channel(`kitchen-${restaurantId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `restaurant_id=eq.${restaurantId}` }, () => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders', filter: `restaurant_id=eq.${restaurantId}` }, () => {
+        if (soundEnabled) playAlert();
+        fetchData();
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `restaurant_id=eq.${restaurantId}` }, () => {
         fetchData();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, () => {

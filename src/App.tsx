@@ -108,6 +108,14 @@ const App = () => (
               }
             />
             <Route
+              path="/dashboard/:restaurantId/floor-plan"
+              element={
+                <ProtectedRoute>
+                  <FloorPlan />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/dashboard"
               element={
                 <ProtectedRoute>

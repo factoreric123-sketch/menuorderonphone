@@ -131,6 +131,14 @@ export const RestaurantCard = memo(({ restaurant }: RestaurantCardProps) => {
               Kitchen
             </Button>
           </div>
+          <Button
+            variant="outline"
+            onClick={handleFloorPlan}
+            className="w-full"
+          >
+            <LayoutGrid className="h-4 w-4 mr-2" />
+            Floor Plan
+          </Button>
         </div>
       </div>
     </div>

@@ -280,7 +280,15 @@ const SortableDishInner = ({ dish, subcategoryId, restaurantId, forceTwoDecimals
 
   return (
     <>
-      <div ref={setNodeRef} style={style} className="group relative">
+      <div ref={setNodeRef} style={style} className={`group relative ${!localAvailable ? 'opacity-50' : ''}`}>
+      {/* Sold out badge */}
+      {!localAvailable && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+          <Badge className="bg-destructive text-destructive-foreground px-4 py-2 rounded-full text-sm font-bold shadow-lg">
+            SOLD OUT
+          </Badge>
+        </div>
+      )}
       {/* Stacked badges */}
       <div className="absolute top-2 right-2 z-10 flex flex-col gap-1 items-end">
         {localNew && (

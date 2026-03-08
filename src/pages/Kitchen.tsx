@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import type { Database } from '@/integrations/supabase/types';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Clock, ChefHat, CheckCircle2, RefreshCw, Printer, Store, ClipboardList } from 'lucide-react';
+import { ArrowLeft, Clock, ChefHat, CheckCircle2, RefreshCw, Printer, Store, ClipboardList, Volume2, VolumeX } from 'lucide-react';
 import { toast } from 'sonner';
+import { useNewOrderAlert } from '@/hooks/useNewOrderAlert';
 
 type Order = Database['public']['Tables']['orders']['Row'];
 type OrderItem = Database['public']['Tables']['order_items']['Row'];

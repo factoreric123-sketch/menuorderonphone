@@ -15,10 +15,11 @@ import { Input } from '@/components/ui/input';
 import {
   ArrowLeft, ChevronDown, ChevronRight, RefreshCw, Search,
   ClipboardList, ChefHat, DollarSign, ShoppingBag, TrendingUp, XCircle,
-  CheckCircle2, Printer, Store,
+  CheckCircle2, Printer, Store, Volume2, VolumeX,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, isToday, parseISO, startOfDay, endOfDay, subDays } from 'date-fns';
+import { useNewOrderAlert } from '@/hooks/useNewOrderAlert';
 
 type Order = Database['public']['Tables']['orders']['Row'];
 type OrderItem = Database['public']['Tables']['order_items']['Row'];
@@ -57,6 +58,8 @@ const OrdersAdmin = () => {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [dateRange, setDateRange] = useState<'today' | '7d' | '30d' | 'all'>('today');
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const { playAlert } = useNewOrderAlert();
 
   const fetchOrders = useCallback(async () => {
     if (!restaurantId) return;
@@ -116,7 +119,11 @@ const OrdersAdmin = () => {
 
     const channel = supabase
       .channel(`orders-admin-${restaurantId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `restaurant_id=eq.${restaurantId}` }, () => fetchOrders())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders', filter: `restaurant_id=eq.${restaurantId}` }, () => {
+        if (soundEnabled) playAlert();
+        fetchOrders();
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `restaurant_id=eq.${restaurantId}` }, () => fetchOrders())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, () => fetchOrders())
       .subscribe();
 
@@ -377,6 +384,14 @@ const OrdersAdmin = () => {
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={() => navigate(`/dashboard/${restaurantId}/tickets`)}>
               <ChefHat className="h-4 w-4 mr-1" /> Kitchen Board
+            </Button>
+            <Button
+              variant={soundEnabled ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              title={soundEnabled ? 'Sound alerts on' : 'Sound alerts off'}
+            >
+              {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
             </Button>
             <Button variant="outline" size="sm" onClick={fetchOrders}>
               <RefreshCw className="h-4 w-4 mr-1" /> Refresh

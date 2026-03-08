@@ -164,6 +164,7 @@ export interface Dish {
   is_vegan: boolean;
   is_spicy: boolean;
   has_options: boolean;
+  available: boolean;
 }
 
 export const useDishes = (subcategoryId: string) => {
@@ -274,6 +275,7 @@ export const useCreateDish = () => {
         is_vegan: dish.is_vegan || false,
         is_spicy: dish.is_spicy || false,
         has_options: dish.has_options || false,
+        available: dish.available !== false,
       };
       
       // Mutate the dish object to include the real ID for the mutationFn

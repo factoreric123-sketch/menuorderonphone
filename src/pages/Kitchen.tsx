@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import type { Database } from '@/integrations/supabase/types';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Clock, ChefHat, CheckCircle2, RefreshCw, Printer, Store, ClipboardList } from 'lucide-react';
+import { ArrowLeft, Clock, ChefHat, CheckCircle2, RefreshCw, Printer, Store, ClipboardList, Volume2, VolumeX } from 'lucide-react';
 import { toast } from 'sonner';
+import { useNewOrderAlert } from '@/hooks/useNewOrderAlert';
 
 type Order = Database['public']['Tables']['orders']['Row'];
 type OrderItem = Database['public']['Tables']['order_items']['Row'];
@@ -40,6 +41,9 @@ const Kitchen = () => {
   const [restaurantName, setRestaurantName] = useState('');
   const [showCompleted, setShowCompleted] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const { playAlert } = useNewOrderAlert();
+  const prevOrderCount = useRef<number | null>(null);
 
   const fetchData = useCallback(async () => {
     if (!restaurantId) return;
@@ -118,7 +122,11 @@ const Kitchen = () => {
 
     const channel = supabase
       .channel(`kitchen-${restaurantId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `restaurant_id=eq.${restaurantId}` }, () => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders', filter: `restaurant_id=eq.${restaurantId}` }, () => {
+        if (soundEnabled) playAlert();
+        fetchData();
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `restaurant_id=eq.${restaurantId}` }, () => {
         fetchData();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, () => {
@@ -314,6 +322,14 @@ const Kitchen = () => {
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={() => navigate(`/dashboard/${restaurantId}/orders`)}>
               <ClipboardList className="h-4 w-4 mr-1" /> Orders
+            </Button>
+            <Button
+              variant={soundEnabled ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              title={soundEnabled ? 'Sound alerts on' : 'Sound alerts off'}
+            >
+              {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
             </Button>
             <Button
               variant={showCompleted ? 'default' : 'outline'}

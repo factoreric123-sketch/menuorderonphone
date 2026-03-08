@@ -64,6 +64,7 @@ const SortableDishInner = ({ dish, subcategoryId, restaurantId, forceTwoDecimals
   const [localSpecial, setLocalSpecial] = useState(dish.is_special);
   const [localPopular, setLocalPopular] = useState(dish.is_popular);
   const [localChefRec, setLocalChefRec] = useState(dish.is_chef_recommendation);
+  const [localAvailable, setLocalAvailable] = useState(dish.available !== false);
   // CRITICAL FIX: Track has_options locally to sync with DishOptionsEditor saves
   const [localHasOptions, setLocalHasOptions] = useState(dish.has_options);
   
@@ -86,6 +87,7 @@ const SortableDishInner = ({ dish, subcategoryId, restaurantId, forceTwoDecimals
       setLocalSpecial(dish.is_special);
       setLocalPopular(dish.is_popular);
       setLocalChefRec(dish.is_chef_recommendation);
+      setLocalAvailable(dish.available !== false);
       setLocalHasOptions(dish.has_options);
     }
   }, [dish.id]);
@@ -278,7 +280,15 @@ const SortableDishInner = ({ dish, subcategoryId, restaurantId, forceTwoDecimals
 
   return (
     <>
-      <div ref={setNodeRef} style={style} className="group relative">
+      <div ref={setNodeRef} style={style} className={`group relative ${!localAvailable ? 'opacity-50' : ''}`}>
+      {/* Sold out badge */}
+      {!localAvailable && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+          <Badge className="bg-destructive text-destructive-foreground px-4 py-2 rounded-full text-sm font-bold shadow-lg">
+            SOLD OUT
+          </Badge>
+        </div>
+      )}
       {/* Stacked badges */}
       <div className="absolute top-2 right-2 z-10 flex flex-col gap-1 items-end">
         {localNew && (
@@ -518,6 +528,21 @@ const SortableDishInner = ({ dish, subcategoryId, restaurantId, forceTwoDecimals
                     id={`chef-${dish.id}`}
                     checked={localChefRec}
                     onCheckedChange={() => handleToggle("is_chef_recommendation", localChefRec, setLocalChefRec)}
+                  />
+                </div>
+
+                {/* Available Toggle */}
+                <div className="flex items-center justify-between pt-2 border-t border-border">
+                  <Label htmlFor={`available-${dish.id}`} className="text-xs flex items-center gap-1.5 font-semibold">
+                    Available
+                  </Label>
+                  <Switch
+                    id={`available-${dish.id}`}
+                    checked={localAvailable}
+                    onCheckedChange={() => {
+                      setLocalAvailable(!localAvailable);
+                      scheduleUpdate({ available: !localAvailable });
+                    }}
                   />
                 </div>
               </div>

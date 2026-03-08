@@ -103,6 +103,9 @@ const OrderStatus = () => {
           <p className="text-muted-foreground text-sm">
             Order for <span className="font-medium text-foreground">{order.guest_name}</span>
           </p>
+          <p className="font-mono text-xs text-muted-foreground">
+            Order #{order.id.slice(0, 8).toUpperCase()}
+          </p>
         </div>
 
         {/* Status Steps */}
@@ -163,9 +166,23 @@ const OrderStatus = () => {
         </div>
 
         {/* Total */}
-        <div className="flex justify-between items-center p-4 rounded-xl bg-muted/30">
-          <span className="font-medium text-foreground">Total</span>
-          <span className="text-xl font-bold text-foreground">${(order.total_cents / 100).toFixed(2)}</span>
+        <div className="rounded-xl bg-muted/30 p-4 space-y-2">
+          {order.tax_cents > 0 && (
+            <>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Subtotal</span>
+                <span className="text-sm text-foreground">${((order.total_cents - order.tax_cents) / 100).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Tax</span>
+                <span className="text-sm text-foreground">${(order.tax_cents / 100).toFixed(2)}</span>
+              </div>
+            </>
+          )}
+          <div className="flex justify-between items-center">
+            <span className="font-medium text-foreground">Total</span>
+            <span className="text-xl font-bold text-foreground">${(order.total_cents / 100).toFixed(2)}</span>
+          </div>
         </div>
 
         <p className="text-center text-xs text-muted-foreground">

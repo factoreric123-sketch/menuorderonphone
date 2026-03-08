@@ -109,7 +109,7 @@ const PublicMenu = ({ slugOverride }: PublicMenuProps) => {
     <PublicMenuStatic
       restaurant={restaurant}
       categories={fullCategories}
-      orderingEnabled={true}
+      orderingEnabled={restaurant.ordering_enabled === true}
     />
   );
 };

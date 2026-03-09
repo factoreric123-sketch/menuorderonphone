@@ -212,9 +212,14 @@ const DishCard = memo(({
   // Standard layout - compact cards with separate text area
   return (
     <div 
-      className={`group relative cursor-pointer ${fontClass}`} 
-      onClick={onClick}
+      className={`group relative cursor-pointer ${fontClass} ${isSoldOut ? 'opacity-50 pointer-events-none' : ''}`} 
+      onClick={isSoldOut ? undefined : onClick}
     >
+      {isSoldOut && (
+        <div className="absolute top-2 left-2 z-20">
+          <Badge variant="destructive" className="text-xs font-bold shadow-md">Sold Out</Badge>
+        </div>
+      )}
       <div className="absolute top-2 right-2 z-10 flex flex-col gap-1 items-end">
         {dish.isNew && (
           <Badge 

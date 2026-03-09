@@ -180,7 +180,7 @@ export const useFullMenu = (
         }
       } else {
         // Buffer update for when data loads
-        console.log('[useFullMenu] Buffering update (no data yet):', updateId);
+        logger.debug('[useFullMenu] Buffering update (no data yet):', updateId);
         pendingBuffer.current.push({ updater, updateId, version });
       }
     };

@@ -26,6 +26,26 @@ const Dashboard = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [showAccountSettings, setShowAccountSettings] = useState(false);
+  const [dailyStats, setDailyStats] = useState({ orders: 0, revenue: 0, active: 0 });
+
+  // Fetch today's stats across all restaurants
+  useEffect(() => {
+    if (!user?.id || restaurants.length === 0) return;
+    const restaurantIds = restaurants.map(r => r.id);
+    supabase
+      .from('orders')
+      .select('id, status, total_cents, created_at')
+      .in('restaurant_id', restaurantIds)
+      .then(({ data }) => {
+        if (!data) return;
+        const todayOrders = data.filter(o => isToday(parseISO(o.created_at)));
+        const active = data.filter(o => ['pending', 'preparing', 'ready'].includes(o.status)).length;
+        const revenue = todayOrders
+          .filter(o => o.status === 'completed')
+          .reduce((sum, o) => sum + o.total_cents, 0);
+        setDailyStats({ orders: todayOrders.length, revenue, active });
+      });
+  }, [user?.id, restaurants.length]);
 
   const handleSignOut = async () => {
     await signOut();

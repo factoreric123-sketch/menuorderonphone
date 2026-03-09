@@ -320,6 +320,9 @@ const Kitchen = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => navigate(`/dashboard/${restaurantId}/floor-plan`)}>
+              <Grid3X3 className="h-4 w-4 mr-1" /> Floor Plan
+            </Button>
             <Button variant="outline" size="sm" onClick={() => navigate(`/dashboard/${restaurantId}/orders`)}>
               <ClipboardList className="h-4 w-4 mr-1" /> Orders
             </Button>

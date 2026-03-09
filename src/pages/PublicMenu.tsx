@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import PublicMenuStatic from "./PublicMenuStatic";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { RestaurantJsonLd } from "@/components/RestaurantJsonLd";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface PublicMenuProps {
   slugOverride?: string;

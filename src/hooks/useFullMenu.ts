@@ -67,7 +67,7 @@ export const useFullMenu = (
           if (updated) {
             result = updated;
             lastAppliedVersion.current = version;
-            console.log('[useFullMenu] Applied buffered update:', updateId);
+            logger.debug('[useFullMenu] Applied buffered update:', updateId);
           }
         } catch (err) {
           console.error('[useFullMenu] Failed to apply buffered update:', updateId, err);

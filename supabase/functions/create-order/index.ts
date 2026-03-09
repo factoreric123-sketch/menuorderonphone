@@ -263,6 +263,19 @@ serve(async (req) => {
       console.error("Order items insert error:", itemsError);
     }
 
+    // Fire-and-forget email notification to owner
+    try {
+      const notifyUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/notify-order`;
+      fetch(notifyUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+        },
+        body: JSON.stringify({ order_id: order.id, restaurant_id }),
+      }).catch(err => console.warn("Notify email failed:", err));
+    } catch {}
+
     return new Response(
       JSON.stringify({
         order_id: order.id,

@@ -119,7 +119,7 @@ export const useFullMenu = (
       setError(null);
       hasInitialFetch.current = true;
     } catch (err) {
-      console.error('[useFullMenu] Fetch error:', err);
+      logger.error('[useFullMenu] Fetch error:', err);
       setError(err instanceof Error ? err : new Error('Failed to fetch menu'));
     } finally {
       setIsLoading(false);

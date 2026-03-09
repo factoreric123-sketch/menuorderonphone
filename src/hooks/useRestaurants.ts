@@ -237,12 +237,8 @@ export const useCreateRestaurant = () => {
 
 export const useUpdateRestaurant = () => {
   const queryClient = useQueryClient();
-  const { data: sessionData } = useQuery({
-    queryKey: ['auth-session'],
-    queryFn: async () => supabase.auth.getSession(),
-  });
-  
-  const userId = sessionData?.data?.session?.user?.id;
+  const { user } = useAuth();
+  const userId = user?.id;
 
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Restaurant> }) => {

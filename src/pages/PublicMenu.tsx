@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import PublicMenuStatic from "./PublicMenuStatic";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { RestaurantJsonLd } from "@/components/RestaurantJsonLd";
 
 interface PublicMenuProps {
   slugOverride?: string;
@@ -65,11 +66,14 @@ const PublicMenu = ({ slugOverride }: PublicMenuProps) => {
   }
 
   return (
-    <PublicMenuStatic
-      restaurant={restaurant}
-      categories={categories}
-      orderingEnabled={restaurant.ordering_enabled === true}
-    />
+    <>
+      <RestaurantJsonLd restaurant={restaurant} categories={categories} />
+      <PublicMenuStatic
+        restaurant={restaurant}
+        categories={categories}
+        orderingEnabled={restaurant.ordering_enabled === true}
+      />
+    </>
   );
 };
 

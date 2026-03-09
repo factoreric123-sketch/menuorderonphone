@@ -63,6 +63,7 @@ const PublicMenuStatic = ({ restaurant, categories, onCategoryChange, tableQrCod
   const [selectedBadges, setSelectedBadges] = useState<string[]>([]);
   const [filterOpen, setFilterOpen] = useState(false);
   const [filtersReady, setFiltersReady] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const subcategoryRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   
   // Single dish detail dialog state - lifted from MenuGrid

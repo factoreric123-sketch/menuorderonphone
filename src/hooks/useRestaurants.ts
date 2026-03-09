@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Theme } from "@/lib/types/theme";
 import { generateUUID } from "@/lib/utils/uuid";
+import { useAuth } from "@/contexts/AuthContext";
 import { logger } from "@/lib/logger";
 
 export interface Restaurant {

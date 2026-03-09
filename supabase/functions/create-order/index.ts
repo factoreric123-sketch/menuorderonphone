@@ -3,8 +3,18 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+// Input validation helpers
+function sanitizeString(val: unknown, maxLen: number): string {
+  if (typeof val !== "string") return "";
+  return val.replace(/<[^>]*>/g, "").trim().slice(0, maxLen);
+}
+
+function isValidUUID(val: unknown): boolean {
+  return typeof val === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -12,13 +22,46 @@ serve(async (req) => {
   }
 
   try {
-    const { restaurant_id, table_qr_code_id, guest_name, guest_phone, payment_method, notes, items } = await req.json();
+    const body = await req.json();
+    const { restaurant_id, table_qr_code_id, guest_name, guest_phone, payment_method, notes, items } = body;
 
-    if (!restaurant_id || !guest_name || !items?.length) {
-      return new Response(JSON.stringify({ error: "Missing required fields" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    // ===== INPUT VALIDATION =====
+    if (!isValidUUID(restaurant_id)) {
+      return new Response(JSON.stringify({ error: "Invalid restaurant ID" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    const cleanName = sanitizeString(guest_name, 100);
+    if (!cleanName) {
+      return new Response(JSON.stringify({ error: "Guest name is required" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!Array.isArray(items) || items.length === 0 || items.length > 100) {
+      return new Response(JSON.stringify({ error: "Order must have 1-100 items" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const cleanPhone = sanitizeString(guest_phone, 20);
+    const cleanNotes = sanitizeString(notes, 500);
+    const cleanPayment = payment_method === "stripe" ? "stripe" : "pay_at_table";
+
+    // Validate each item has required fields
+    for (const item of items) {
+      if (!isValidUUID(item.dish_id)) {
+        return new Response(JSON.stringify({ error: "Invalid dish ID in order" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const qty = parseInt(item.quantity);
+      if (isNaN(qty) || qty < 1 || qty > 99) {
+        return new Response(JSON.stringify({ error: "Invalid quantity (1-99)" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     const supabase = createClient(
@@ -35,25 +78,24 @@ serve(async (req) => {
 
     if (restError || !restaurant) {
       return new Response(JSON.stringify({ error: "Restaurant not found" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     if (!restaurant.ordering_enabled) {
       return new Response(JSON.stringify({ error: "Online ordering is currently disabled for this restaurant" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     // Resolve table_id from qr_code_id
     let tableId: string | null = null;
-    if (table_qr_code_id) {
+    if (table_qr_code_id && typeof table_qr_code_id === "string") {
+      const cleanQr = table_qr_code_id.slice(0, 20);
       const { data: table } = await supabase
         .from("restaurant_tables")
         .select("id")
-        .eq("qr_code_id", table_qr_code_id)
+        .eq("qr_code_id", cleanQr)
         .eq("restaurant_id", restaurant_id)
         .eq("active", true)
         .maybeSingle();
@@ -64,13 +106,20 @@ serve(async (req) => {
     const dishIds = items.map((i: any) => i.dish_id);
     const { data: dishes, error: dishError } = await supabase
       .from("dishes")
-      .select("id, name, price, has_options, available")
+      .select("id, name, price, has_options, available, restaurant_id")
       .in("id", dishIds);
 
     if (dishError || !dishes) {
       return new Response(JSON.stringify({ error: "Failed to validate dishes" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Verify all dishes belong to this restaurant
+    const foreignDishes = dishes.filter((d: any) => d.restaurant_id !== restaurant_id);
+    if (foreignDishes.length > 0) {
+      return new Response(JSON.stringify({ error: "Some dishes do not belong to this restaurant" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -80,8 +129,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({
         error: `These items are currently unavailable: ${unavailable.map((d: any) => d.name).join(", ")}`,
       }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -89,7 +137,7 @@ serve(async (req) => {
 
     // Fetch all options for dishes that have them
     const dishesWithOptions = dishes.filter((d: any) => d.has_options).map((d: any) => d.id);
-    let optionsMap = new Map();
+    const optionsMap = new Map();
     if (dishesWithOptions.length > 0) {
       const { data: options } = await supabase
         .from("dish_options")
@@ -99,6 +147,16 @@ serve(async (req) => {
         optionsMap.set(`${o.dish_id}:${o.name}`, o);
       });
     }
+
+    // Fetch all modifiers for price validation
+    const { data: allModifiers } = await supabase
+      .from("dish_modifiers")
+      .select("id, dish_id, name, price")
+      .in("dish_id", dishIds);
+    const modifierMap = new Map();
+    allModifiers?.forEach((m: any) => {
+      modifierMap.set(`${m.dish_id}:${m.name}`, m);
+    });
 
     // Build validated order items and compute subtotal
     let subtotalCents = 0;
@@ -123,21 +181,41 @@ serve(async (req) => {
         unitPriceCents = Math.round(parseFloat(dish.price.replace(/[^0-9.]/g, "")) * 100);
       }
 
-      const modifierNames = item.selected_modifier_names || [];
+      // Validate and price modifiers server-side
+      const modifierNames: string[] = [];
+      let modifierTotalCents = 0;
+      if (Array.isArray(item.selected_modifier_names)) {
+        for (const modName of item.selected_modifier_names.slice(0, 20)) {
+          const cleanMod = sanitizeString(modName, 100);
+          if (!cleanMod) continue;
+          const mod = modifierMap.get(`${item.dish_id}:${cleanMod}`);
+          if (mod) {
+            modifierNames.push(mod.name);
+            modifierTotalCents += Math.round(parseFloat(mod.price.replace(/[^0-9.]/g, "")) * 100);
+          }
+        }
+      }
+
       const quantity = Math.max(1, Math.min(99, parseInt(item.quantity) || 1));
-      const itemSubtotalCents = unitPriceCents * quantity;
+      const itemSubtotalCents = (unitPriceCents + modifierTotalCents) * quantity;
       subtotalCents += itemSubtotalCents;
 
       validatedItems.push({
         dish_id: item.dish_id,
-        dish_name: dish.name,
+        dish_name: dish.name, // Always use server name, not client
         quantity,
         unit_price_cents: unitPriceCents,
         selected_option_name: optionName,
-        selected_modifier_names: modifierNames,
+        selected_modifier_names: modifierNames.length > 0 ? modifierNames : null,
         subtotal_cents: itemSubtotalCents,
-        special_instructions: item.special_instructions || null,
+        special_instructions: sanitizeString(item.special_instructions, 300) || null,
         station: "kitchen",
+      });
+    }
+
+    if (validatedItems.length === 0) {
+      return new Response(JSON.stringify({ error: "No valid items in order" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -152,14 +230,14 @@ serve(async (req) => {
       .insert({
         restaurant_id,
         table_id: tableId,
-        guest_name,
-        guest_phone: guest_phone || null,
-        payment_method: payment_method || "pay_at_table",
+        guest_name: cleanName,
+        guest_phone: cleanPhone || null,
+        payment_method: cleanPayment,
         total_cents: totalCents,
         tax_cents: taxCents,
-        notes: notes || null,
+        notes: cleanNotes || null,
         status: "pending",
-        payment_status: payment_method === "pay_at_table" ? "unpaid" : "unpaid",
+        payment_status: "unpaid",
       })
       .select("id, session_token")
       .single();
@@ -167,8 +245,7 @@ serve(async (req) => {
     if (orderError || !order) {
       console.error("Order insert error:", orderError);
       return new Response(JSON.stringify({ error: "Failed to create order" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -202,7 +279,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("Create order error:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Internal error" }),
+      JSON.stringify({ error: "Internal error" }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -187,6 +187,9 @@ interface RestaurantHeaderProps {
   editable?: boolean;
   restaurantId?: string;
   menuFont?: string;
+  phone?: string | null;
+  address?: string | null;
+  businessHours?: Record<string, { open: string; close: string; closed?: boolean }> | null;
 }
 
 const RestaurantHeader = memo(({ 

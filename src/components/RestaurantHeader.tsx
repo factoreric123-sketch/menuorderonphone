@@ -204,6 +204,12 @@ const RestaurantHeader = memo(({
   businessHours,
 }: RestaurantHeaderProps) => {
   const fontClass = getFontClassName(menuFont);
+
+  // Get today's business hours
+  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const todayKey = dayNames[new Date().getDay()];
+  const todayHours = businessHours?.[todayKey] || null;
+
   const uploadImage = useImageUpload();
   const updateRestaurant = useUpdateRestaurant();
   const [showCropModal, setShowCropModal] = useState(false);

@@ -251,6 +251,24 @@ export default function FloorPlan() {
                 </Button>
               </>
             )}
+
+            {!editMode && stats.dirty > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10"
+                onClick={async () => {
+                  const dirtyIds = tables.filter(t => t.table_status === 'dirty').map(t => t.id);
+                  for (const id of dirtyIds) {
+                    await supabase.from('restaurant_tables').update({ table_status: 'available' } as any).eq('id', id);
+                  }
+                  fetchData();
+                  toast.success(`${dirtyIds.length} tables marked clean`);
+                }}
+              >
+                ✨ Mark All Clean ({stats.dirty})
+              </Button>
+            )}
           </div>
         </div>
 

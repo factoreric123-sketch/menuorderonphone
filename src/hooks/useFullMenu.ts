@@ -273,7 +273,7 @@ export const useFullMenu = (
         // CRITICAL FIX: Always update state when cache changes - don't compare references
         // The previous check `newData !== data` could fail if the update is to nested properties
         if (newData) {
-          console.log('[useFullMenu] React Query cache updated, syncing state');
+          logger.debug('[useFullMenu] React Query cache updated, syncing state');
           setData(newData);
         }
       }

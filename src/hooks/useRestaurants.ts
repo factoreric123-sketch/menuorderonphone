@@ -47,12 +47,8 @@ export interface Restaurant {
 }
 
 export const useRestaurants = () => {
-  const { data } = useQuery({
-    queryKey: ['auth-session'],
-    queryFn: async () => supabase.auth.getSession(),
-  });
-
-  const userId = data?.data?.session?.user?.id;
+  const { user } = useAuth();
+  const userId = user?.id;
 
   return useQuery({
     queryKey: ["restaurants", userId],

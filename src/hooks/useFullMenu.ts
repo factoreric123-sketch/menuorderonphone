@@ -70,7 +70,7 @@ export const useFullMenu = (
             logger.debug('[useFullMenu] Applied buffered update:', updateId);
           }
         } catch (err) {
-          console.error('[useFullMenu] Failed to apply buffered update:', updateId, err);
+          logger.error('[useFullMenu] Failed to apply buffered update:', updateId, err);
         }
       }
     });

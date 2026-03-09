@@ -173,7 +173,7 @@ export const useFullMenu = (
             queryClient.setQueryData(['full-menu', restaurantId], updated);
             if (version) lastAppliedVersion.current = version;
           } else {
-            console.log('[useFullMenu] Updater returned null (no change needed):', updateId);
+            logger.debug('[useFullMenu] Updater returned null (no change needed):', updateId);
           }
         } catch (err) {
           console.error('[useFullMenu] Failed to apply update:', err);

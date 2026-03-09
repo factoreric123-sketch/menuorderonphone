@@ -232,7 +232,7 @@ export const useFullMenu = (
           const age = Date.now() - entry.timestamp;
 
           if (age < CACHE_TTL) {
-            console.log('[useFullMenu] Using localStorage cache');
+            logger.debug('[useFullMenu] Using localStorage cache');
             let finalData = entry.data;
             
             // Apply pending updates

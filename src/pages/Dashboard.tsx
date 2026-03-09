@@ -30,23 +30,37 @@ const Dashboard = () => {
   const [showAccountSettings, setShowAccountSettings] = useState(false);
   const [dailyStats, setDailyStats] = useState({ orders: 0, revenue: 0, active: 0 });
 
-  // Fetch today's stats across all restaurants
+  // Fetch today's stats across all restaurants (server-side date filter)
   useEffect(() => {
     if (!user?.id || restaurants.length === 0) return;
     const restaurantIds = restaurants.map(r => r.id);
-    supabase
-      .from('orders')
-      .select('id, status, total_cents, created_at')
-      .in('restaurant_id', restaurantIds)
-      .then(({ data }) => {
-        if (!data) return;
-        const todayOrders = data.filter(o => isToday(parseISO(o.created_at)));
-        const active = data.filter(o => ['pending', 'preparing', 'ready'].includes(o.status)).length;
-        const revenue = todayOrders
-          .filter(o => o.status === 'completed')
-          .reduce((sum, o) => sum + o.total_cents, 0);
-        setDailyStats({ orders: todayOrders.length, revenue, active });
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    Promise.all([
+      // Today's orders (server-filtered by date)
+      supabase
+        .from('orders')
+        .select('id, status, total_cents')
+        .in('restaurant_id', restaurantIds)
+        .gte('created_at', todayStart.toISOString()),
+      // Active orders (any date, specific statuses)
+      supabase
+        .from('orders')
+        .select('id', { count: 'exact', head: true })
+        .in('restaurant_id', restaurantIds)
+        .in('status', ['pending', 'preparing', 'ready']),
+    ]).then(([todayRes, activeRes]) => {
+      const todayOrders = todayRes.data || [];
+      const revenue = todayOrders
+        .filter(o => o.status === 'completed')
+        .reduce((sum, o) => sum + o.total_cents, 0);
+      setDailyStats({
+        orders: todayOrders.length,
+        revenue,
+        active: activeRes.count || 0,
       });
+    });
   }, [user?.id, restaurants.length]);
 
   const handleSignOut = async () => {

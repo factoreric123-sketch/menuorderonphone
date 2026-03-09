@@ -1,6 +1,8 @@
 {
-  "name": "menu - Digital Restaurant Menus",
-  "short_name": "menu",
+  "name": "MenuCraft - Digital Restaurant Menus",
+  "short_name": "MenuCraft",
+  "start_url": "/",
+  "scope": "/",
   "icons": [
     {
       "src": "/apple-touch-icon.png",
@@ -15,10 +17,12 @@
     {
       "src": "/favicon.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ],
   "theme_color": "#000000",
   "background_color": "#000000",
-  "display": "standalone"
+  "display": "standalone",
+  "orientation": "portrait"
 }

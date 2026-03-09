@@ -249,7 +249,7 @@ export const useFullMenu = (
           }
         }
       } catch (err) {
-        console.warn('[useFullMenu] localStorage read error:', err);
+        logger.warn('[useFullMenu] localStorage read error:', err);
       }
     }
 

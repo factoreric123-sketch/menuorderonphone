@@ -149,7 +149,7 @@ export const useFullMenu = (
       
       // Skip if already applied (Phase 4: prevent double-renders)
       if (updateId && menuSyncEmitter.isApplied(updateId)) {
-        console.log('[useFullMenu] Skipping already applied update:', updateId);
+        logger.debug('[useFullMenu] Skipping already applied update:', updateId);
         return;
       }
       

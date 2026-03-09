@@ -4,7 +4,7 @@ import type { Database } from '@/integrations/supabase/types';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Clock, ChefHat, CheckCircle2, RefreshCw, Printer, Store, ClipboardList, Volume2, VolumeX } from 'lucide-react';
+import { ArrowLeft, Clock, ChefHat, CheckCircle2, RefreshCw, Printer, Store, ClipboardList, Volume2, VolumeX, Grid3X3 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNewOrderAlert } from '@/hooks/useNewOrderAlert';
 

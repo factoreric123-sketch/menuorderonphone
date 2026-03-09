@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import {
   ArrowLeft, ChevronDown, ChevronRight, RefreshCw, Search,
   ClipboardList, ChefHat, DollarSign, ShoppingBag, TrendingUp, XCircle,
-  CheckCircle2, Printer, Store, Volume2, VolumeX,
+  CheckCircle2, Printer, Store, Volume2, VolumeX, Grid3X3,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, isToday, parseISO, startOfDay, endOfDay, subDays } from 'date-fns';

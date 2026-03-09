@@ -5,9 +5,10 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { X, Clock, User, DollarSign, UtensilsCrossed, Users, Pencil, Check, Trash2, CalendarClock, SprayCan, Ban, CheckCircle2, QrCode, Download } from 'lucide-react';
-import { formatDistanceToNow, differenceInMinutes } from 'date-fns';
+import { X, Clock, User, DollarSign, UtensilsCrossed, Users, Pencil, Check, Trash2, QrCode, Download } from 'lucide-react';
+import { differenceInMinutes } from 'date-fns';
 import { QRCodeCanvas } from 'qrcode.react';
+import { cn } from '@/lib/utils';
 
 interface TableWithOrder {
   id: string;
@@ -75,7 +76,6 @@ export function TableOrderPanel({ table, onClose, onRefresh }: TableOrderPanelPr
     setServerValue(table.server_name || '');
   }, [table.id, table.label, table.capacity, table.server_name]);
 
-  // Live elapsed time counter
   useEffect(() => {
     if (!table.activeOrder) { setElapsed(''); return; }
     const update = () => {
@@ -102,20 +102,6 @@ export function TableOrderPanel({ table, onClose, onRefresh }: TableOrderPanelPr
 
   const formatCents = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
-  const getStatusBadge = (status: string) => {
-    const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-      pending: 'secondary',
-      preparing: 'default',
-      ready: 'outline',
-    };
-    return <Badge variant={variants[status] || 'outline'} className="capitalize">{status}</Badge>;
-  };
-
-  const getPaymentBadge = (status: string) => {
-    if (status === 'paid') return <Badge className="bg-emerald-500/20 text-emerald-600 border-emerald-500/30">Paid</Badge>;
-    return <Badge variant="destructive" className="bg-destructive/20 text-destructive">Unpaid</Badge>;
-  };
-
   const handleMarkPaid = async () => {
     if (!table.activeOrder) return;
     await supabase.from('orders').update({ payment_status: 'paid' }).eq('id', table.activeOrder.id);
@@ -125,7 +111,6 @@ export function TableOrderPanel({ table, onClose, onRefresh }: TableOrderPanelPr
   const handleClearTable = async () => {
     if (!table.activeOrder) return;
     await supabase.from('orders').update({ status: 'completed' }).eq('id', table.activeOrder.id);
-    // Also set table status to dirty (needs bussing)
     await supabase.from('restaurant_tables').update({ table_status: 'dirty' } as any).eq('id', table.id);
     onRefresh();
   };
@@ -154,118 +139,119 @@ export function TableOrderPanel({ table, onClose, onRefresh }: TableOrderPanelPr
   };
 
   const tableStatusOptions = [
-    { value: 'available', label: 'Available', icon: CheckCircle2, color: 'text-emerald-500' },
-    { value: 'reserved', label: 'Reserved', icon: CalendarClock, color: 'text-violet-500' },
-    { value: 'dirty', label: 'Needs Bussing', icon: SprayCan, color: 'text-orange-500' },
-    { value: 'unavailable', label: 'Unavailable', icon: Ban, color: 'text-muted-foreground' },
+    { value: 'available', label: 'Available' },
+    { value: 'reserved', label: 'Reserved' },
+    { value: 'dirty', label: 'Needs Bussing' },
+    { value: 'unavailable', label: 'Unavailable' },
   ];
 
   return (
-    <div className="w-80 border-l border-border bg-card flex flex-col">
+    <div className="w-80 border-l border-border bg-background flex flex-col">
       {/* Header */}
       <div className="p-4 border-b border-border">
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between mb-3">
           <div className="flex-1">
             {editingLabel ? (
               <div className="flex items-center gap-1">
-                <Input value={labelValue} onChange={(e) => setLabelValue(e.target.value)} className="h-7 text-sm" />
+                <Input value={labelValue} onChange={(e) => setLabelValue(e.target.value)} className="h-7 text-sm bg-secondary border-border" />
                 <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleSaveLabel}><Check className="h-3 w-3" /></Button>
               </div>
             ) : (
-              <div className="flex items-center gap-1">
-                <h3 className="font-semibold text-foreground">{table.label}</h3>
-                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setLabelValue(table.label); setEditingLabel(true); }}>
-                  <Pencil className="h-3 w-3" />
+              <div className="flex items-center gap-1.5">
+                <h3 className="font-semibold text-foreground tracking-tight">{table.label}</h3>
+                <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => { setLabelValue(table.label); setEditingLabel(true); }}>
+                  <Pencil className="h-2.5 w-2.5" />
                 </Button>
               </div>
             )}
-            <p className="text-xs text-muted-foreground">QR: {table.qr_code_id}</p>
+            <p className="text-[10px] text-muted-foreground font-mono tracking-wide mt-0.5">QR: {table.qr_code_id}</p>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose}><X className="h-4 w-4" /></Button>
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}><X className="h-3.5 w-3.5" /></Button>
         </div>
 
-        {/* Capacity */}
-        <div className="flex items-center gap-2 text-sm mb-2">
-          <Users className="h-4 w-4 text-muted-foreground" />
-          {editingCapacity ? (
-            <div className="flex items-center gap-1">
-              <Input
-                type="number" min={1} max={20}
-                value={capacityValue}
-                onChange={(e) => setCapacityValue(parseInt(e.target.value) || 1)}
-                className="h-7 w-16 text-sm"
-              />
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleSaveCapacity}><Check className="h-3 w-3" /></Button>
-            </div>
-          ) : (
-            <button
-              className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
-              onClick={() => { setCapacityValue(table.capacity); setEditingCapacity(true); }}
-            >
-              <span>{table.capacity} seats</span>
-              <Pencil className="h-3 w-3" />
-            </button>
-          )}
-          <Badge variant="outline" className="ml-auto capitalize text-xs">{table.shape}</Badge>
-        </div>
+        <div className="space-y-2">
+          {/* Capacity */}
+          <div className="flex items-center gap-2 text-sm">
+            <Users className="h-3.5 w-3.5 text-muted-foreground" />
+            {editingCapacity ? (
+              <div className="flex items-center gap-1">
+                <Input
+                  type="number" min={1} max={20}
+                  value={capacityValue}
+                  onChange={(e) => setCapacityValue(parseInt(e.target.value) || 1)}
+                  className="h-7 w-16 text-sm bg-secondary border-border"
+                />
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleSaveCapacity}><Check className="h-3 w-3" /></Button>
+              </div>
+            ) : (
+              <button
+                className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors text-xs"
+                onClick={() => { setCapacityValue(table.capacity); setEditingCapacity(true); }}
+              >
+                <span>{table.capacity} seats</span>
+                <Pencil className="h-2.5 w-2.5" />
+              </button>
+            )}
+            <span className="ml-auto text-[10px] font-mono text-muted-foreground uppercase tracking-wider border border-border rounded px-1.5 py-0.5">
+              {table.shape}
+            </span>
+          </div>
 
-        {/* Server Assignment */}
-        <div className="flex items-center gap-2 text-sm mb-2">
-          <User className="h-4 w-4 text-muted-foreground" />
-          {editingServer ? (
-            <div className="flex items-center gap-1 flex-1">
-              <Input
-                value={serverValue}
-                onChange={(e) => setServerValue(e.target.value)}
-                placeholder="Server name"
-                className="h-7 text-sm"
-              />
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleSaveServer}><Check className="h-3 w-3" /></Button>
-            </div>
-          ) : (
-            <button
-              className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
-              onClick={() => { setServerValue(table.server_name || ''); setEditingServer(true); }}
-            >
-              <span>{table.server_name || 'No server'}</span>
-              <Pencil className="h-3 w-3" />
-            </button>
-          )}
-        </div>
+          {/* Server */}
+          <div className="flex items-center gap-2 text-sm">
+            <User className="h-3.5 w-3.5 text-muted-foreground" />
+            {editingServer ? (
+              <div className="flex items-center gap-1 flex-1">
+                <Input
+                  value={serverValue}
+                  onChange={(e) => setServerValue(e.target.value)}
+                  placeholder="Server name"
+                  className="h-7 text-sm bg-secondary border-border"
+                />
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleSaveServer}><Check className="h-3 w-3" /></Button>
+              </div>
+            ) : (
+              <button
+                className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors text-xs"
+                onClick={() => { setServerValue(table.server_name || ''); setEditingServer(true); }}
+              >
+                <span>{table.server_name || 'No server'}</span>
+                <Pencil className="h-2.5 w-2.5" />
+              </button>
+            )}
+          </div>
 
-        {/* Table Status */}
-        <div className="flex items-center gap-2 text-sm">
-          <Label className="text-muted-foreground text-xs shrink-0">Status:</Label>
-          <Select value={table.table_status} onValueChange={handleTableStatusChange}>
-            <SelectTrigger className="h-7 text-xs flex-1">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {tableStatusOptions.map(opt => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  <div className="flex items-center gap-1.5">
-                    <opt.icon className={cn('h-3.5 w-3.5', opt.color)} />
-                    <span>{opt.label}</span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {/* Status */}
+          <div className="flex items-center gap-2 text-sm">
+            <Label className="text-muted-foreground text-[10px] uppercase tracking-wider shrink-0">Status</Label>
+            <Select value={table.table_status} onValueChange={handleTableStatusChange}>
+              <SelectTrigger className="h-7 text-xs flex-1 bg-secondary border-border">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {tableStatusOptions.map(opt => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
       {/* Content */}
       <div className="flex-1 overflow-auto p-4">
-        {/* QR Code Section */}
-        <div className="mb-4 p-3 rounded-lg border border-border bg-muted/30">
+        {/* QR Code */}
+        <div className="mb-4 p-3 rounded-lg border border-border">
           <div className="flex items-center justify-between mb-2">
-            <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
-              <QrCode className="h-4 w-4" /> Table QR Code
+            <h4 className="text-[10px] font-medium text-muted-foreground flex items-center gap-1.5 uppercase tracking-wider">
+              <QrCode className="h-3 w-3" /> QR Code
             </h4>
             <Button
               variant="outline"
               size="sm"
-              className="h-7 text-xs"
+              className="h-6 text-[10px]"
               onClick={() => {
                 const canvas = document.getElementById(`qr-table-${table.id}`) as HTMLCanvasElement;
                 if (!canvas) return;
@@ -275,105 +261,123 @@ export function TableOrderPanel({ table, onClose, onRefresh }: TableOrderPanelPr
                 link.click();
               }}
             >
-              <Download className="h-3 w-3 mr-1" /> Download
+              <Download className="h-2.5 w-2.5 mr-1" /> Download
             </Button>
           </div>
-          <div className="flex justify-center bg-white rounded p-2">
+          <div className="flex justify-center bg-foreground rounded p-3">
             <QRCodeCanvas
               id={`qr-table-${table.id}`}
               value={`${window.location.origin}/menu?table=${table.qr_code_id}`}
-              size={140}
+              size={120}
               level="M"
               includeMargin
+              bgColor="#ffffff"
+              fgColor="#000000"
             />
           </div>
-          <p className="text-[10px] text-muted-foreground text-center mt-1.5">
-            Scan to order · ID: {table.qr_code_id}
+          <p className="text-[9px] text-muted-foreground text-center mt-1.5 font-mono">
+            {table.qr_code_id}
           </p>
         </div>
 
         {table.activeOrder ? (
-          <div className="space-y-4">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                {getStatusBadge(table.activeOrder.status)}
-                {getPaymentBadge(table.activeOrder.payment_status)}
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <User className="h-4 w-4" />
-                  <span className="truncate">{table.activeOrder.guest_name}</span>
-                </div>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Clock className="h-4 w-4" />
-                  <span className="font-medium">{elapsed}</span>
-                </div>
-              </div>
-
-              {/* Time elapsed bar */}
-              {(() => {
-                const mins = differenceInMinutes(new Date(), new Date(table.activeOrder.created_at));
-                const pct = Math.min(100, (mins / 60) * 100);
-                const color = mins > 45 ? 'bg-destructive' : mins > 20 ? 'bg-amber-500' : 'bg-emerald-500';
-                return (
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>Time elapsed</span>
-                      <span>{mins}min</span>
-                    </div>
-                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div className={cn('h-full rounded-full transition-all', color)} style={{ width: `${pct}%` }} />
-                    </div>
-                  </div>
-                );
-              })()}
-
-              <div className="flex items-center justify-between p-3 rounded-lg bg-primary/10">
-                <div className="flex items-center gap-2">
-                  <DollarSign className="h-5 w-5 text-primary" />
-                  <span className="font-semibold text-lg text-foreground">{formatCents(table.activeOrder.total_cents)}</span>
-                </div>
-                {table.activeOrder.payment_status !== 'paid' && (
-                  <Button size="sm" onClick={handleMarkPaid}>Mark Paid</Button>
-                )}
-              </div>
-
-              {/* Clear Table Button */}
-              <Button
+          <div className="space-y-3">
+            {/* Order status */}
+            <div className="flex items-center justify-between">
+              <Badge variant="outline" className="capitalize text-[10px] font-mono tracking-wide">
+                {table.activeOrder.status}
+              </Badge>
+              <Badge
                 variant="outline"
-                size="sm"
-                className="w-full border-orange-500/30 text-orange-600 hover:bg-orange-500/10"
-                onClick={handleClearTable}
+                className={cn(
+                  'text-[10px] font-mono',
+                  table.activeOrder.payment_status === 'paid'
+                    ? 'border-foreground/30 text-foreground'
+                    : 'border-destructive/30 text-destructive'
+                )}
               >
-                <Trash2 className="h-4 w-4 mr-1" />
-                Clear Table
-              </Button>
+                {table.activeOrder.payment_status === 'paid' ? '● Paid' : '○ Unpaid'}
+              </Badge>
             </div>
 
+            {/* Guest + Time */}
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <User className="h-3 w-3" />
+                <span className="truncate">{table.activeOrder.guest_name}</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <Clock className="h-3 w-3" />
+                <span className="font-mono font-medium">{elapsed}</span>
+              </div>
+            </div>
+
+            {/* Time bar */}
+            {(() => {
+              const mins = differenceInMinutes(new Date(), new Date(table.activeOrder.created_at));
+              const pct = Math.min(100, (mins / 60) * 100);
+              return (
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[10px] text-muted-foreground font-mono">
+                    <span>elapsed</span>
+                    <span>{mins}min</span>
+                  </div>
+                  <div className="h-1 bg-secondary rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-foreground/60 transition-all"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Total */}
+            <div className="flex items-center justify-between p-3 rounded-lg border border-border">
+              <div className="flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <span className="font-mono font-bold text-lg text-foreground">{formatCents(table.activeOrder.total_cents)}</span>
+              </div>
+              {table.activeOrder.payment_status !== 'paid' && (
+                <Button size="sm" className="h-7 text-xs" onClick={handleMarkPaid}>Mark Paid</Button>
+              )}
+            </div>
+
+            {/* Clear Table */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full text-xs h-8"
+              onClick={handleClearTable}
+            >
+              <Trash2 className="h-3 w-3 mr-1.5" />
+              Clear Table
+            </Button>
+
+            {/* Items */}
             <div>
-              <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
-                <UtensilsCrossed className="h-4 w-4" />
-                Order Items ({items.length})
+              <h4 className="text-[10px] font-medium text-muted-foreground mb-2 flex items-center gap-1.5 uppercase tracking-wider">
+                <UtensilsCrossed className="h-3 w-3" />
+                Items ({items.length})
               </h4>
               {loading ? (
-                <div className="text-center py-4 text-muted-foreground">Loading...</div>
+                <div className="text-center py-4 text-xs text-muted-foreground">Loading...</div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   {items.map((item) => (
-                    <div key={item.id} className="p-3 rounded-lg border border-border bg-muted/30">
+                    <div key={item.id} className="p-2.5 rounded border border-border">
                       <div className="flex justify-between items-start">
                         <div>
-                          <span className="font-medium text-foreground">{item.quantity}× {item.dish_name}</span>
-                          {item.selected_option_name && <p className="text-xs text-muted-foreground mt-0.5">{item.selected_option_name}</p>}
+                          <span className="text-xs font-medium text-foreground">{item.quantity}× {item.dish_name}</span>
+                          {item.selected_option_name && <p className="text-[10px] text-muted-foreground mt-0.5">{item.selected_option_name}</p>}
                           {item.selected_modifier_names && item.selected_modifier_names.length > 0 && (
-                            <p className="text-xs text-muted-foreground">+{item.selected_modifier_names.join(', ')}</p>
+                            <p className="text-[10px] text-muted-foreground">+{item.selected_modifier_names.join(', ')}</p>
                           )}
                           {item.special_instructions && (
-                            <p className="text-xs text-amber-600 mt-1 italic">"{item.special_instructions}"</p>
+                            <p className="text-[10px] text-muted-foreground mt-1 italic">"{item.special_instructions}"</p>
                           )}
                         </div>
-                        <span className="text-sm font-medium text-foreground">{formatCents(item.unit_price_cents * item.quantity)}</span>
+                        <span className="text-xs font-mono font-medium text-foreground">{formatCents(item.unit_price_cents * item.quantity)}</span>
                       </div>
                     </div>
                   ))}
@@ -384,17 +388,13 @@ export function TableOrderPanel({ table, onClose, onRefresh }: TableOrderPanelPr
         ) : (
           <div className="h-full flex items-center justify-center">
             <div className="text-center">
-              <UtensilsCrossed className="h-12 w-12 mx-auto text-muted-foreground/30 mb-3" />
-              <h4 className="font-medium text-foreground mb-1">No Active Order</h4>
-              <p className="text-sm text-muted-foreground">This table doesn't have any active orders</p>
+              <UtensilsCrossed className="h-8 w-8 mx-auto text-muted-foreground/20 mb-3" />
+              <h4 className="text-sm font-medium text-foreground mb-1">No Active Order</h4>
+              <p className="text-xs text-muted-foreground">Table is empty</p>
             </div>
           </div>
         )}
       </div>
     </div>
   );
-}
-
-function cn(...classes: (string | boolean | undefined)[]) {
-  return classes.filter(Boolean).join(' ');
 }

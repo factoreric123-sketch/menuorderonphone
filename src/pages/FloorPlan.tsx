@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Plus, Save, Grid3X3, Pencil, ChefHat, ClipboardList } from 'lucide-react';
+import { ArrowLeft, Plus, Save, Grid3X3, Pencil, ChefHat, ClipboardList, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { differenceInMinutes } from 'date-fns';
 import { FloorPlanCanvas } from '@/components/editor/FloorPlanCanvas';
@@ -120,7 +120,6 @@ export default function FloorPlan() {
     return () => { supabase.removeChannel(channel); };
   }, [restaurantId, fetchData]);
 
-  // Summary stats
   const stats = useMemo(() => {
     const occupied = tables.filter(t => !!t.activeOrder).length;
     const totalRevenue = tables.reduce((sum, t) => sum + (t.activeOrder?.total_cents || 0), 0);
@@ -206,48 +205,69 @@ export default function FloorPlan() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        <div className="animate-spin rounded-full h-6 w-6 border-2 border-foreground border-t-transparent" />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+      {/* Header */}
+      <header className="border-b border-border sticky top-0 z-50 bg-background">
+        <div className="px-5 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-4">
             <Link to="/dashboard">
-              <Button variant="ghost" size="icon"><ArrowLeft className="h-5 w-5" /></Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
             </Link>
             <div>
-              <h1 className="text-lg font-semibold text-foreground">{restaurant?.name || 'Restaurant'}</h1>
-              <p className="text-sm text-muted-foreground">Floor Plan · {tables.length} tables</p>
+              <h1 className="text-base font-semibold tracking-tight text-foreground">
+                {restaurant?.name || 'Restaurant'}
+              </h1>
+              <p className="text-xs text-muted-foreground tracking-wide uppercase">
+                Floor Plan · {tables.length} tables
+              </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            {/* Cross-navigation */}
-            <Button variant="outline" size="sm" onClick={() => navigate(`/dashboard/${restaurantId}/tickets`)}>
-              <ChefHat className="h-4 w-4 mr-1" /> Kitchen
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs h-8"
+              onClick={() => navigate(`/dashboard/${restaurantId}/tickets`)}
+            >
+              <ChefHat className="h-3.5 w-3.5 mr-1.5" /> Kitchen
             </Button>
-            <Button variant="outline" size="sm" onClick={() => navigate(`/dashboard/${restaurantId}/orders`)}>
-              <ClipboardList className="h-4 w-4 mr-1" /> Orders
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs h-8"
+              onClick={() => navigate(`/dashboard/${restaurantId}/orders`)}
+            >
+              <ClipboardList className="h-3.5 w-3.5 mr-1.5" /> Orders
             </Button>
 
-            <div className="w-px h-6 bg-border mx-1" />
+            <div className="w-px h-5 bg-border mx-1" />
 
-            <Button variant={editMode ? 'default' : 'outline'} size="sm" onClick={() => setEditMode(!editMode)}>
-              {editMode ? <Grid3X3 className="h-4 w-4 mr-1" /> : <Pencil className="h-4 w-4 mr-1" />}
-              {editMode ? 'View Mode' : 'Edit Layout'}
+            <Button
+              variant={editMode ? 'default' : 'outline'}
+              size="sm"
+              className="text-xs h-8"
+              onClick={() => setEditMode(!editMode)}
+            >
+              {editMode ? <Grid3X3 className="h-3.5 w-3.5 mr-1.5" /> : <Pencil className="h-3.5 w-3.5 mr-1.5" />}
+              {editMode ? 'Done' : 'Edit'}
             </Button>
 
             {editMode && (
               <>
-                <Button variant="outline" size="sm" onClick={handleAddTable}>
-                  <Plus className="h-4 w-4 mr-1" /> Add Table
+                <Button variant="outline" size="sm" className="text-xs h-8" onClick={handleAddTable}>
+                  <Plus className="h-3.5 w-3.5 mr-1" /> Add
                 </Button>
-                <Button size="sm" onClick={handleSaveLayout} disabled={!hasUnsavedChanges}>
-                  <Save className="h-4 w-4 mr-1" /> Save
+                <Button size="sm" className="text-xs h-8" onClick={handleSaveLayout} disabled={!hasUnsavedChanges}>
+                  <Save className="h-3.5 w-3.5 mr-1" /> Save
                 </Button>
               </>
             )}
@@ -256,7 +276,7 @@ export default function FloorPlan() {
               <Button
                 variant="outline"
                 size="sm"
-                className="border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10"
+                className="text-xs h-8"
                 onClick={async () => {
                   const dirtyIds = tables.filter(t => t.table_status === 'dirty').map(t => t.id);
                   for (const id of dirtyIds) {
@@ -266,44 +286,42 @@ export default function FloorPlan() {
                   toast.success(`${dirtyIds.length} tables marked clean`);
                 }}
               >
-                ✨ Mark All Clean ({stats.dirty})
+                <Sparkles className="h-3.5 w-3.5 mr-1" /> Clean All ({stats.dirty})
               </Button>
             )}
           </div>
         </div>
 
-        {/* Quick Stats Bar */}
-        <div className="px-4 py-2 border-t border-border flex items-center gap-6 text-sm bg-muted/30 flex-wrap">
-          <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-            <span className="text-muted-foreground">Occupied:</span>
-            <span className="font-semibold text-foreground">{stats.occupied}/{stats.total}</span>
+        {/* Stats Bar */}
+        <div className="px-5 py-2 border-t border-border flex items-center gap-8 text-xs tracking-wide">
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground uppercase">Occupied</span>
+            <span className="font-mono font-semibold text-foreground">{stats.occupied}/{stats.total}</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-muted-foreground">Revenue:</span>
-            <span className="font-semibold text-emerald-600">{formatCents(stats.totalRevenue)}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground uppercase">Revenue</span>
+            <span className="font-mono font-semibold text-foreground">{formatCents(stats.totalRevenue)}</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-muted-foreground">Avg Wait:</span>
-            <span className="font-semibold text-foreground">{stats.avgWait}m</span>
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground uppercase">Avg Wait</span>
+            <span className="font-mono font-semibold text-foreground">{stats.avgWait}m</span>
           </div>
           {stats.reserved > 0 && (
-            <div className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-full bg-violet-500" />
-              <span className="text-muted-foreground">Reserved:</span>
-              <span className="font-semibold text-foreground">{stats.reserved}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground uppercase">Reserved</span>
+              <span className="font-mono font-semibold text-foreground">{stats.reserved}</span>
             </div>
           )}
           {stats.dirty > 0 && (
-            <div className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-full bg-orange-500" />
-              <span className="text-muted-foreground">Needs Bussing:</span>
-              <span className="font-semibold text-foreground">{stats.dirty}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground uppercase">Dirty</span>
+              <span className="font-mono font-semibold text-foreground">{stats.dirty}</span>
             </div>
           )}
         </div>
       </header>
 
+      {/* Canvas + Panel */}
       <div className="flex-1 flex">
         <div className="flex-1 relative overflow-hidden">
           <FloorPlanCanvas
@@ -320,11 +338,11 @@ export default function FloorPlan() {
           {tables.length === 0 && (
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="text-center p-8">
-                <Grid3X3 className="h-16 w-16 mx-auto text-muted-foreground/30 mb-4" />
-                <h3 className="text-lg font-medium text-foreground mb-2">No tables yet</h3>
-                <p className="text-muted-foreground mb-4">Add tables to build your floor plan</p>
-                <Button onClick={handleAddTable}>
-                  <Plus className="h-4 w-4 mr-2" /> Add First Table
+                <Grid3X3 className="h-12 w-12 mx-auto text-muted-foreground/20 mb-4" />
+                <h3 className="text-sm font-medium text-foreground mb-1">No tables yet</h3>
+                <p className="text-xs text-muted-foreground mb-4">Add tables to build your floor plan</p>
+                <Button size="sm" onClick={handleAddTable}>
+                  <Plus className="h-3.5 w-3.5 mr-1.5" /> Add First Table
                 </Button>
               </div>
             </div>
@@ -341,18 +359,18 @@ export default function FloorPlan() {
       </div>
 
       {/* Legend */}
-      <div className="border-t border-border bg-card/50 px-4 py-2 flex items-center gap-4 text-sm flex-wrap">
-        <span className="text-muted-foreground">Status:</span>
-        <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-muted" /><span>Empty</span></div>
-        <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-amber-500" /><span>Pending</span></div>
-        <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-blue-500" /><span>Preparing</span></div>
-        <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-emerald-500" /><span>Ready</span></div>
-        <div className="w-px h-4 bg-border mx-1" />
-        <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-violet-500" /><span>Reserved</span></div>
-        <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-orange-500" /><span>Dirty</span></div>
-        <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-muted-foreground/40" /><span>Unavailable</span></div>
+      <div className="border-t border-border px-5 py-2 flex items-center gap-5 text-[11px] tracking-wide text-muted-foreground">
+        <span className="uppercase font-medium">Legend</span>
+        <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-muted-foreground/30" /><span>Empty</span></div>
+        <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-foreground/40" /><span>Pending</span></div>
+        <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-foreground/60" /><span>Preparing</span></div>
+        <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-foreground" /><span>Ready</span></div>
+        <div className="w-px h-3 bg-border mx-1" />
+        <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full border border-foreground/50" /><span>Reserved</span></div>
+        <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-foreground/20 border border-dashed border-foreground/30" /><span>Dirty</span></div>
+        <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-muted-foreground/10 border border-muted-foreground/20" /><span>Off</span></div>
         {editMode && (
-          <span className="ml-auto text-muted-foreground text-xs">Double-click table to toggle round/square · Drag corner to resize</span>
+          <span className="ml-auto text-muted-foreground/60 text-[10px]">Double-click → toggle shape · Drag corner → resize</span>
         )}
       </div>
     </div>

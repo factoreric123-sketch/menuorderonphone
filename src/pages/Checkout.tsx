@@ -195,7 +195,7 @@ const Checkout = () => {
           {submitting ? (
             <><Loader2 className="h-5 w-5 animate-spin mr-2" /> Placing Order...</>
           ) : (
-            `Place Order — $${(totalCents / 100).toFixed(2)}`
+            `Place Order — $${(grandTotalCents / 100).toFixed(2)}`
           )}
         </Button>
 

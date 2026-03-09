@@ -40,6 +40,7 @@ export interface Dish {
   isVegan?: boolean;
   isSpicy?: boolean;
   hasOptions?: boolean;
+  available?: boolean;
   options?: Array<{ id: string; name: string; price: string; order_index: number }>;
   modifiers?: Array<{ id: string; name: string; price: string; order_index: number }>;
 }

@@ -128,13 +128,20 @@ const DishCard = memo(({
   // Aspect ratio based on image shape
   const aspectClass = isVertical ? 'aspect-[3/4]' : 'aspect-square';
 
+  const isSoldOut = dish.available === false;
+
   // Text overlay layout - larger images with overlaid dish name at bottom
   if (useTextOverlay) {
     return (
       <div 
-        className={`group relative cursor-pointer ${fontClass}`} 
-        onClick={onClick}
+        className={`group relative cursor-pointer ${fontClass} ${isSoldOut ? 'opacity-50 pointer-events-none' : ''}`} 
+        onClick={isSoldOut ? undefined : onClick}
       >
+        {isSoldOut && (
+          <div className="absolute top-2 left-2 z-20">
+            <Badge variant="destructive" className="text-xs font-bold shadow-md">Sold Out</Badge>
+          </div>
+        )}
         {/* Badge in top right */}
         <div className="absolute top-2 right-2 z-10 flex flex-col gap-1 items-end">
           {dish.isNew && (

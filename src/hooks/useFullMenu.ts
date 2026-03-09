@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { menuSyncEmitter } from '@/lib/menuSyncEmitter';
+import { logger } from '@/lib/logger';
 
 interface FullMenuData {
   restaurant: any;
@@ -56,7 +57,7 @@ export const useFullMenu = (
   const applyBufferedUpdates = useCallback((initialData: FullMenuData): FullMenuData => {
     if (pendingBuffer.current.length === 0) return initialData;
     
-    console.log('[useFullMenu] Applying buffered updates:', pendingBuffer.current.length);
+    logger.debug('[useFullMenu] Applying buffered updates:', pendingBuffer.current.length);
     
     let result = initialData;
     pendingBuffer.current.forEach(({ updater, updateId, version }) => {
@@ -66,10 +67,10 @@ export const useFullMenu = (
           if (updated) {
             result = updated;
             lastAppliedVersion.current = version;
-            console.log('[useFullMenu] Applied buffered update:', updateId);
+            logger.debug('[useFullMenu] Applied buffered update:', updateId);
           }
         } catch (err) {
-          console.error('[useFullMenu] Failed to apply buffered update:', updateId, err);
+          logger.error('[useFullMenu] Failed to apply buffered update:', updateId, err);
         }
       }
     });
@@ -83,7 +84,7 @@ export const useFullMenu = (
     if (!restaurantId) return;
     
     try {
-      console.log('[useFullMenu] Fetching menu for:', restaurantId);
+      logger.debug('[useFullMenu] Fetching menu for:', restaurantId);
       setIsLoading(true);
       
       const { data: menuData, error: rpcError } = await supabase.rpc('get_restaurant_full_menu', {
@@ -100,7 +101,7 @@ export const useFullMenu = (
       // Apply any locally buffered updates
       parsed = applyBufferedUpdates(parsed);
       
-      console.log('[useFullMenu] Menu fetched and updates applied');
+      logger.debug('[useFullMenu] Menu fetched and updates applied');
       
       setData(parsed);
       queryClient.setQueryData(['full-menu', restaurantId], parsed);
@@ -111,14 +112,14 @@ export const useFullMenu = (
           const entry: CacheEntry = { data: parsed, timestamp: Date.now() };
           localStorage.setItem(cacheKey, JSON.stringify(entry));
         } catch (err) {
-          console.warn('[useFullMenu] Failed to cache:', err);
+          logger.warn('[useFullMenu] Failed to cache:', err);
         }
       }
       
       setError(null);
       hasInitialFetch.current = true;
     } catch (err) {
-      console.error('[useFullMenu] Fetch error:', err);
+      logger.error('[useFullMenu] Fetch error:', err);
       setError(err instanceof Error ? err : new Error('Failed to fetch menu'));
     } finally {
       setIsLoading(false);
@@ -138,7 +139,7 @@ export const useFullMenu = (
   useEffect(() => {
     if (!restaurantId) return;
 
-    console.log('[useFullMenu] Setting up sync subscription for:', restaurantId);
+    logger.debug('[useFullMenu] Setting up sync subscription for:', restaurantId);
     isSubscribed.current = true;
 
     const handleUpdate = (payload: any) => {
@@ -148,13 +149,13 @@ export const useFullMenu = (
       
       // Skip if already applied (Phase 4: prevent double-renders)
       if (updateId && menuSyncEmitter.isApplied(updateId)) {
-        console.log('[useFullMenu] Skipping already applied update:', updateId);
+        logger.debug('[useFullMenu] Skipping already applied update:', updateId);
         return;
       }
       
       // Skip if version is older than last applied
       if (version && version <= lastAppliedVersion.current) {
-        console.log('[useFullMenu] Skipping older version:', version, 'last:', lastAppliedVersion.current);
+        logger.debug('[useFullMenu] Skipping older version:', version, 'last:', lastAppliedVersion.current);
         return;
       }
 
@@ -166,20 +167,20 @@ export const useFullMenu = (
         try {
           const updated = updater(currentData);
           if (updated) {
-            console.log('[useFullMenu] Applied update instantly:', updateId);
+            logger.debug('[useFullMenu] Applied update instantly:', updateId);
             // Update both state and React Query cache
             setData(updated);
             queryClient.setQueryData(['full-menu', restaurantId], updated);
             if (version) lastAppliedVersion.current = version;
           } else {
-            console.log('[useFullMenu] Updater returned null (no change needed):', updateId);
+            logger.debug('[useFullMenu] Updater returned null (no change needed):', updateId);
           }
         } catch (err) {
-          console.error('[useFullMenu] Failed to apply update:', err);
+          logger.error('[useFullMenu] Failed to apply update:', err);
         }
       } else {
         // Buffer update for when data loads
-        console.log('[useFullMenu] Buffering update (no data yet):', updateId);
+        logger.debug('[useFullMenu] Buffering update (no data yet):', updateId);
         pendingBuffer.current.push({ updater, updateId, version });
       }
     };
@@ -205,7 +206,7 @@ export const useFullMenu = (
     // PRIORITY 1: React Query cache (has optimistic updates)
     const rqCached = queryClient.getQueryData<FullMenuData>(['full-menu', restaurantId]);
     if (rqCached) {
-      console.log('[useFullMenu] Using React Query cache');
+      logger.debug('[useFullMenu] Using React Query cache');
       let finalData = rqCached;
       
       // Apply any pending updates
@@ -231,7 +232,7 @@ export const useFullMenu = (
           const age = Date.now() - entry.timestamp;
 
           if (age < CACHE_TTL) {
-            console.log('[useFullMenu] Using localStorage cache');
+            logger.debug('[useFullMenu] Using localStorage cache');
             let finalData = entry.data;
             
             // Apply pending updates
@@ -248,12 +249,12 @@ export const useFullMenu = (
           }
         }
       } catch (err) {
-        console.warn('[useFullMenu] localStorage read error:', err);
+        logger.warn('[useFullMenu] localStorage read error:', err);
       }
     }
 
     // PRIORITY 3: Fetch from database
-    console.log('[useFullMenu] No cache, fetching from database');
+    logger.debug('[useFullMenu] No cache, fetching from database');
     fetchMenu();
   }, [restaurantId, cacheKey, fetchMenu, useLocalStorageCache, queryClient, applyBufferedUpdates]);
 
@@ -272,7 +273,7 @@ export const useFullMenu = (
         // CRITICAL FIX: Always update state when cache changes - don't compare references
         // The previous check `newData !== data` could fail if the update is to nested properties
         if (newData) {
-          console.log('[useFullMenu] React Query cache updated, syncing state');
+          logger.debug('[useFullMenu] React Query cache updated, syncing state');
           setData(newData);
         }
       }

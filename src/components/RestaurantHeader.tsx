@@ -175,7 +175,7 @@ import { ImageCropModal } from "./ImageCropModal";
 import { useImageUpload } from "@/hooks/useImageUpload";
 import { useUpdateRestaurant } from "@/hooks/useRestaurants";
 import { InlineEdit } from "./editor/InlineEdit";
-import { Camera } from "lucide-react";
+import { Camera, Clock, Phone, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import heroImage from "@/assets/restaurant-hero.jpg";
 import { getFontClassName } from "@/lib/fontUtils";

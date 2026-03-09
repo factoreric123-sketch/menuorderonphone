@@ -67,11 +67,14 @@ const PublicMenu = ({ slugOverride }: PublicMenuProps) => {
   }
 
   return (
-    <PublicMenuStatic
-      restaurant={restaurant}
-      categories={categories}
-      orderingEnabled={restaurant.ordering_enabled === true}
-    />
+    <>
+      <RestaurantJsonLd restaurant={restaurant} categories={categories} />
+      <PublicMenuStatic
+        restaurant={restaurant}
+        categories={categories}
+        orderingEnabled={restaurant.ordering_enabled === true}
+      />
+    </>
   );
 };
 

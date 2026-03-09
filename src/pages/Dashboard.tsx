@@ -13,7 +13,7 @@ import { PremiumBadge } from "@/components/PremiumBadge";
 import { PaywallModal } from "@/components/PaywallModal";
 import { AccountSettingsDialog } from "@/components/AccountSettingsDialog";
 import { toast } from "@/hooks/use-toast";
-import { isToday, parseISO } from 'date-fns';
+import { toast } from "@/hooks/use-toast";
 
 const Dashboard = () => {
   useDocumentTitle("Dashboard", "Manage your restaurants and digital menus");

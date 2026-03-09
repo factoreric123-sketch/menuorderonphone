@@ -571,6 +571,88 @@ export const RestaurantSettingsDialog = ({
 
           <Separator />
 
+          {/* Restaurant Contact Info */}
+          <div>
+            <h3 className="text-sm font-semibold mb-4">Contact & Location</h3>
+            <div className="space-y-3">
+              <div>
+                <Label>Phone Number</Label>
+                <Input
+                  defaultValue={restaurant.phone || ''}
+                  placeholder="(555) 123-4567"
+                  onChange={(e) => updateSetting('phone', e.target.value || null)}
+                />
+              </div>
+              <div>
+                <Label>Address</Label>
+                <Input
+                  defaultValue={restaurant.address || ''}
+                  placeholder="123 Main St, City, State"
+                  onChange={(e) => updateSetting('address', e.target.value || null)}
+                />
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Business Hours */}
+          <div>
+            <h3 className="text-sm font-semibold mb-4">Business Hours</h3>
+            <div className="space-y-2">
+              {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day) => {
+                const hours = (restaurant.business_hours as any)?.[day] || { open: '11:00', close: '22:00', closed: false };
+                return (
+                  <div key={day} className="flex items-center gap-2">
+                    <span className="w-24 text-sm capitalize">{day}</span>
+                    <Switch
+                      checked={!hours.closed}
+                      onCheckedChange={(open) => {
+                        const current = (restaurant.business_hours as any) || {};
+                        updateSetting('business_hours', {
+                          ...current,
+                          [day]: { ...hours, closed: !open },
+                        });
+                      }}
+                    />
+                    {!hours.closed && (
+                      <>
+                        <Input
+                          type="time"
+                          defaultValue={hours.open}
+                          className="w-28 text-sm"
+                          onChange={(e) => {
+                            const current = (restaurant.business_hours as any) || {};
+                            updateSetting('business_hours', {
+                              ...current,
+                              [day]: { ...hours, open: e.target.value },
+                            });
+                          }}
+                        />
+                        <span className="text-muted-foreground text-sm">to</span>
+                        <Input
+                          type="time"
+                          defaultValue={hours.close}
+                          className="w-28 text-sm"
+                          onChange={(e) => {
+                            const current = (restaurant.business_hours as any) || {};
+                            updateSetting('business_hours', {
+                              ...current,
+                              [day]: { ...hours, close: e.target.value },
+                            });
+                          }}
+                        />
+                      </>
+                    )}
+                    {hours.closed && <span className="text-sm text-muted-foreground">Closed</span>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <Separator />
+
           {/* Import / Export */}
           <div>
             <h3 className="text-sm font-semibold mb-4">Import / Export Menu</h3>

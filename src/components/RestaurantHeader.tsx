@@ -198,7 +198,10 @@ const RestaurantHeader = memo(({
   heroImageUrl, 
   editable = false, 
   restaurantId,
-  menuFont = 'Inter'
+  menuFont = 'Inter',
+  phone,
+  address,
+  businessHours,
 }: RestaurantHeaderProps) => {
   const fontClass = getFontClassName(menuFont);
   const uploadImage = useImageUpload();

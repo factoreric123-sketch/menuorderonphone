@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Plus, Save, Grid3X3, Pencil } from 'lucide-react';
+import { ArrowLeft, Plus, Save, Grid3X3, Pencil, ChefHat, ClipboardList } from 'lucide-react';
 import { toast } from 'sonner';
+import { differenceInMinutes } from 'date-fns';
 import { FloorPlanCanvas } from '@/components/editor/FloorPlanCanvas';
 import { TableOrderPanel } from '@/components/editor/TableOrderPanel';
 
@@ -18,6 +19,8 @@ interface TableWithOrder {
   shape: string;
   capacity: number;
   active: boolean;
+  server_name: string | null;
+  table_status: string;
   activeOrder?: {
     id: string;
     guest_name: string;
@@ -31,6 +34,7 @@ interface TableWithOrder {
 
 export default function FloorPlan() {
   const { restaurantId } = useParams<{ restaurantId: string }>();
+  const navigate = useNavigate();
   const [tables, setTables] = useState<TableWithOrder[]>([]);
   const [restaurant, setRestaurant] = useState<{ name: string } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -87,7 +91,9 @@ export default function FloorPlan() {
         width: table.width ?? 80,
         height: table.height ?? 80,
         shape: table.shape ?? 'square',
-        capacity: (table as any).capacity ?? 4,
+        capacity: table.capacity ?? 4,
+        server_name: (table as any).server_name ?? null,
+        table_status: (table as any).table_status ?? 'available',
         activeOrder: activeOrder ? {
           ...activeOrder,
           items_count: itemCounts.get(activeOrder.id) || 0,
@@ -96,7 +102,6 @@ export default function FloorPlan() {
     });
 
     setTables(tablesWithOrders);
-    // Update selected table if it exists
     if (selectedTable) {
       const updated = tablesWithOrders.find(t => t.id === selectedTable.id);
       if (updated) setSelectedTable(updated);
@@ -114,6 +119,21 @@ export default function FloorPlan() {
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [restaurantId, fetchData]);
+
+  // Summary stats
+  const stats = useMemo(() => {
+    const occupied = tables.filter(t => !!t.activeOrder).length;
+    const totalRevenue = tables.reduce((sum, t) => sum + (t.activeOrder?.total_cents || 0), 0);
+    const waitTimes = tables
+      .filter(t => !!t.activeOrder)
+      .map(t => differenceInMinutes(new Date(), new Date(t.activeOrder!.created_at)));
+    const avgWait = waitTimes.length > 0 ? Math.round(waitTimes.reduce((a, b) => a + b, 0) / waitTimes.length) : 0;
+    const reserved = tables.filter(t => t.table_status === 'reserved').length;
+    const dirty = tables.filter(t => t.table_status === 'dirty').length;
+    return { occupied, total: tables.length, totalRevenue, avgWait, reserved, dirty };
+  }, [tables]);
+
+  const formatCents = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
   const handleTableMove = (tableId: string, x: number, y: number) => {
     setTables(prev => prev.map(t => (t.id === tableId ? { ...t, position_x: x, position_y: y } : t)));
@@ -206,6 +226,16 @@ export default function FloorPlan() {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Cross-navigation */}
+            <Button variant="outline" size="sm" onClick={() => navigate(`/dashboard/${restaurantId}/tickets`)}>
+              <ChefHat className="h-4 w-4 mr-1" /> Kitchen
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => navigate(`/dashboard/${restaurantId}/orders`)}>
+              <ClipboardList className="h-4 w-4 mr-1" /> Orders
+            </Button>
+
+            <div className="w-px h-6 bg-border mx-1" />
+
             <Button variant={editMode ? 'default' : 'outline'} size="sm" onClick={() => setEditMode(!editMode)}>
               {editMode ? <Grid3X3 className="h-4 w-4 mr-1" /> : <Pencil className="h-4 w-4 mr-1" />}
               {editMode ? 'View Mode' : 'Edit Layout'}
@@ -222,6 +252,37 @@ export default function FloorPlan() {
               </>
             )}
           </div>
+        </div>
+
+        {/* Quick Stats Bar */}
+        <div className="px-4 py-2 border-t border-border flex items-center gap-6 text-sm bg-muted/30 flex-wrap">
+          <div className="flex items-center gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+            <span className="text-muted-foreground">Occupied:</span>
+            <span className="font-semibold text-foreground">{stats.occupied}/{stats.total}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-muted-foreground">Revenue:</span>
+            <span className="font-semibold text-emerald-600">{formatCents(stats.totalRevenue)}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-muted-foreground">Avg Wait:</span>
+            <span className="font-semibold text-foreground">{stats.avgWait}m</span>
+          </div>
+          {stats.reserved > 0 && (
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-full bg-violet-500" />
+              <span className="text-muted-foreground">Reserved:</span>
+              <span className="font-semibold text-foreground">{stats.reserved}</span>
+            </div>
+          )}
+          {stats.dirty > 0 && (
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-full bg-orange-500" />
+              <span className="text-muted-foreground">Needs Bussing:</span>
+              <span className="font-semibold text-foreground">{stats.dirty}</span>
+            </div>
+          )}
         </div>
       </header>
 
@@ -268,6 +329,10 @@ export default function FloorPlan() {
         <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-amber-500" /><span>Pending</span></div>
         <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-blue-500" /><span>Preparing</span></div>
         <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-emerald-500" /><span>Ready</span></div>
+        <div className="w-px h-4 bg-border mx-1" />
+        <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-violet-500" /><span>Reserved</span></div>
+        <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-orange-500" /><span>Dirty</span></div>
+        <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-muted-foreground/40" /><span>Unavailable</span></div>
         {editMode && (
           <span className="ml-auto text-muted-foreground text-xs">Double-click table to toggle round/square · Drag corner to resize</span>
         )}

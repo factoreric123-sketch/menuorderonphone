@@ -409,27 +409,47 @@ const Kitchen = () => {
                 {/* Items */}
                 <div className="divide-y divide-border">
                   {visibleItems.map((item) => (
-                    <button
-                      key={item.id}
-                      className="w-full text-left p-3 hover:bg-accent/50 transition-colors"
-                      onClick={() => cycleItemStatus(item.id, item.status)}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <span className="font-medium text-foreground">{item.quantity}× {item.dish_name}</span>
-                          {item.selected_option_name && <p className="text-xs text-muted-foreground">{item.selected_option_name}</p>}
-                          {item.selected_modifier_names?.length ? (
-                            <p className="text-xs text-muted-foreground">+ {item.selected_modifier_names.join(', ')}</p>
-                          ) : null}
-                          {item.special_instructions && (
-                            <p className="text-xs text-destructive font-medium mt-1">Note: {item.special_instructions}</p>
-                          )}
+                    <div key={item.id} className="flex items-start justify-between p-3 hover:bg-accent/50 transition-colors">
+                      <button
+                        className="flex-1 text-left"
+                        onClick={() => cycleItemStatus(item.id, item.status)}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <span className="font-medium text-foreground">{item.quantity}× {item.dish_name}</span>
+                            {item.selected_option_name && <p className="text-xs text-muted-foreground">{item.selected_option_name}</p>}
+                            {item.selected_modifier_names?.length ? (
+                              <p className="text-xs text-muted-foreground">+ {item.selected_modifier_names.join(', ')}</p>
+                            ) : null}
+                            {item.special_instructions && (
+                              <p className="text-xs text-destructive font-medium mt-1">Note: {item.special_instructions}</p>
+                            )}
+                          </div>
+                          <Badge variant="outline" className={`text-xs capitalize ${statusColors[item.status] || ''}`}>
+                            {item.status}
+                          </Badge>
                         </div>
-                        <Badge variant="outline" className={`text-xs capitalize ${statusColors[item.status] || ''}`}>
-                          {item.status}
-                        </Badge>
-                      </div>
-                    </button>
+                      </button>
+                      {/* 86 button - mark dish unavailable */}
+                      {item.dish_id && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="ml-1 text-destructive hover:bg-destructive/10 text-xs px-2 shrink-0"
+                          title="86 this dish (mark unavailable)"
+                          onClick={async () => {
+                            const { error } = await supabase
+                              .from('dishes')
+                              .update({ available: false })
+                              .eq('id', item.dish_id!);
+                            if (error) toast.error('Failed to 86 item');
+                            else toast.success(`${item.dish_name} is now 86'd`);
+                          }}
+                        >
+                          86
+                        </Button>
+                      )}
+                    </div>
                   ))}
                 </div>
 

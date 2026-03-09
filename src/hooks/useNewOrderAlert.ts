@@ -1,17 +1,32 @@
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useEffect } from 'react';
 
 /**
- * Plays a short alert tone when new orders arrive.
+ * Plays a short alert tone and shows a browser notification when new orders arrive.
  * Uses Web Audio API — no external sound files needed.
  */
 export function useNewOrderAlert() {
   const lastPlayed = useRef(0);
 
-  const playAlert = useCallback(() => {
+  // Request notification permission on mount
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  const playAlert = useCallback((orderInfo?: { guestName?: string; tableName?: string }) => {
     // Throttle to 1 alert per 3 seconds
     const now = Date.now();
     if (now - lastPlayed.current < 3000) return;
     lastPlayed.current = now;
+
+    // Browser notification
+    if ('Notification' in window && Notification.permission === 'granted') {
+      const body = orderInfo?.tableName
+        ? `${orderInfo.guestName || 'Guest'} · ${orderInfo.tableName}`
+        : orderInfo?.guestName || 'A new order just came in';
+      new Notification('🔔 New Order', { body, icon: '/favicon.png', tag: 'new-order' });
+    }
 
     try {
       const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();

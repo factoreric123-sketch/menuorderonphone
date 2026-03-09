@@ -89,15 +89,20 @@ const DishCard = memo(({
   textOverlay = false,
   menuFont = 'Inter',
 }: DishCardProps) => {
-  // Use React Query cache for fresh options/modifiers data
-  // CRITICAL: Use dataUpdatedAt to detect if cache has been set (even via setQueryData)
-  const { data: cachedOptions, dataUpdatedAt: optionsUpdatedAt } = useDishOptions(dish.id);
-  const { data: cachedModifiers, dataUpdatedAt: modifiersUpdatedAt } = useDishModifiers(dish.id);
+  // Only fetch options/modifiers if NOT already provided via props (avoids N+1 on public menus)
+  const hasPropsOptions = Array.isArray(dish.options) && dish.options.length > 0;
+  const hasPropsModifiers = Array.isArray(dish.modifiers) && dish.modifiers.length > 0;
   
-  // Prioritize cached data if it exists (dataUpdatedAt > 0 means cache has data)
-  // This ensures optimistic updates via setQueryData are respected immediately
-  const options = optionsUpdatedAt > 0 ? (cachedOptions || []) : (dish.options || []);
-  const modifiers = modifiersUpdatedAt > 0 ? (cachedModifiers || []) : (dish.modifiers || []);
+  const { data: cachedOptions, dataUpdatedAt: optionsUpdatedAt } = useDishOptions(
+    hasPropsOptions ? '' : dish.id  // Skip fetch if props already have data
+  );
+  const { data: cachedModifiers, dataUpdatedAt: modifiersUpdatedAt } = useDishModifiers(
+    hasPropsModifiers ? '' : dish.id  // Skip fetch if props already have data
+  );
+  
+  // Use props data first, then cached data
+  const options = hasPropsOptions ? dish.options! : (optionsUpdatedAt > 0 ? (cachedOptions || []) : []);
+  const modifiers = hasPropsModifiers ? dish.modifiers! : (modifiersUpdatedAt > 0 ? (cachedModifiers || []) : []);
   const hasActiveOptions = options.length > 0;
 
   // Use new customization options (fallback to layoutStyle for backwards compatibility)

@@ -286,6 +286,9 @@ const PublicMenuStatic = ({ restaurant, categories, onCategoryChange, tableQrCod
         tagline={restaurant?.tagline || ''}
         heroImageUrl={restaurant?.hero_image_url}
         menuFont={restaurant?.menu_font || 'Inter'}
+        phone={restaurant?.phone}
+        address={restaurant?.address}
+        businessHours={restaurant?.business_hours}
       />
 
       {/* Category & Subcategory Navigation */}

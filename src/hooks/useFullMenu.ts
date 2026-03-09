@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { menuSyncEmitter } from '@/lib/menuSyncEmitter';
+import { logger } from '@/lib/logger';
 
 interface FullMenuData {
   restaurant: any;

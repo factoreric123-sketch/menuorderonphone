@@ -175,7 +175,7 @@ import { ImageCropModal } from "./ImageCropModal";
 import { useImageUpload } from "@/hooks/useImageUpload";
 import { useUpdateRestaurant } from "@/hooks/useRestaurants";
 import { InlineEdit } from "./editor/InlineEdit";
-import { Camera } from "lucide-react";
+import { Camera, Clock, Phone, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import heroImage from "@/assets/restaurant-hero.jpg";
 import { getFontClassName } from "@/lib/fontUtils";
@@ -187,6 +187,9 @@ interface RestaurantHeaderProps {
   editable?: boolean;
   restaurantId?: string;
   menuFont?: string;
+  phone?: string | null;
+  address?: string | null;
+  businessHours?: Record<string, { open: string; close: string; closed?: boolean }> | null;
 }
 
 const RestaurantHeader = memo(({ 
@@ -195,9 +198,18 @@ const RestaurantHeader = memo(({
   heroImageUrl, 
   editable = false, 
   restaurantId,
-  menuFont = 'Inter'
+  menuFont = 'Inter',
+  phone,
+  address,
+  businessHours,
 }: RestaurantHeaderProps) => {
   const fontClass = getFontClassName(menuFont);
+
+  // Get today's business hours
+  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const todayKey = dayNames[new Date().getDay()];
+  const todayHours = businessHours?.[todayKey] || null;
+
   const uploadImage = useImageUpload();
   const updateRestaurant = useUpdateRestaurant();
   const [showCropModal, setShowCropModal] = useState(false);
@@ -314,6 +326,27 @@ const RestaurantHeader = memo(({
                 <p className="text-xs sm:text-sm md:text-base text-muted-foreground drop-shadow">
                   {tagline}
                 </p>
+              )}
+              {/* Contact info strip */}
+              {!editable && (phone || address || todayHours) && (
+                <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-muted-foreground">
+                  {todayHours && (
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {todayHours.closed ? 'Closed today' : `${todayHours.open} – ${todayHours.close}`}
+                    </span>
+                  )}
+                  {phone && (
+                    <a href={`tel:${phone}`} className="flex items-center gap-1 hover:text-foreground transition-colors">
+                      <Phone className="h-3 w-3" /> {phone}
+                    </a>
+                  )}
+                  {address && (
+                    <span className="flex items-center gap-1">
+                      <MapPin className="h-3 w-3" /> {address}
+                    </span>
+                  )}
+                </div>
               )}
             </>
           )}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +18,23 @@ const Checkout = () => {
   const [notes, setNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'pay_at_table' | 'stripe'>('pay_at_table');
   const [submitting, setSubmitting] = useState(false);
+  const [taxRate, setTaxRate] = useState(0);
+
+  // Fetch restaurant tax rate
+  useEffect(() => {
+    if (!restaurantId) return;
+    supabase
+      .from('restaurants')
+      .select('tax_rate')
+      .eq('id', restaurantId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.tax_rate) setTaxRate(parseFloat(String(data.tax_rate)));
+      });
+  }, [restaurantId]);
+
+  const taxCents = Math.round(totalCents * taxRate);
+  const grandTotalCents = totalCents + taxCents;
 
   if (items.length === 0) {
     return (
@@ -108,9 +125,21 @@ const Checkout = () => {
                 <span className="font-semibold text-foreground">${(getItemTotal(item) / 100).toFixed(2)}</span>
               </div>
             ))}
-            <div className="p-3 flex justify-between">
+            {taxRate > 0 && (
+              <>
+                <div className="p-3 flex justify-between text-sm text-muted-foreground">
+                  <span>Subtotal</span>
+                  <span>${(totalCents / 100).toFixed(2)}</span>
+                </div>
+                <div className="p-3 flex justify-between text-sm text-muted-foreground border-t border-border">
+                  <span>Tax ({(taxRate * 100).toFixed(1)}%)</span>
+                  <span>${(taxCents / 100).toFixed(2)}</span>
+                </div>
+              </>
+            )}
+            <div className="p-3 flex justify-between border-t border-border">
               <span className="font-bold text-foreground">Total</span>
-              <span className="font-bold text-foreground text-lg">${(totalCents / 100).toFixed(2)}</span>
+              <span className="font-bold text-foreground text-lg">${(grandTotalCents / 100).toFixed(2)}</span>
             </div>
           </div>
         </div>
@@ -166,7 +195,7 @@ const Checkout = () => {
           {submitting ? (
             <><Loader2 className="h-5 w-5 animate-spin mr-2" /> Placing Order...</>
           ) : (
-            `Place Order — $${(totalCents / 100).toFixed(2)}`
+            `Place Order — $${(grandTotalCents / 100).toFixed(2)}`
           )}
         </Button>
 

@@ -105,14 +105,12 @@ const PublicMenuStatic = ({ restaurant, categories, onCategoryChange, tableQrCod
   const allDishes = useMemo(() => {
     if (!subcategories?.length) return [];
     
-    const dishes: Dish[] = [];
+    const dishes: (Dish & { available?: boolean })[] = [];
     subcategories.forEach((subcategory: any) => {
       if (subcategory.dishes) {
         subcategory.dishes.forEach((dish: any) => {
-          // Filter out unavailable dishes on public menu
-          if (dish.available !== false) {
-            dishes.push(dish);
-          }
+          // Include all dishes, mark unavailable ones
+          dishes.push({ ...dish, available: dish.available !== false });
         });
       }
     });
@@ -288,6 +286,9 @@ const PublicMenuStatic = ({ restaurant, categories, onCategoryChange, tableQrCod
         tagline={restaurant?.tagline || ''}
         heroImageUrl={restaurant?.hero_image_url}
         menuFont={restaurant?.menu_font || 'Inter'}
+        phone={restaurant?.phone}
+        address={restaurant?.address}
+        businessHours={restaurant?.business_hours}
       />
 
       {/* Category & Subcategory Navigation */}

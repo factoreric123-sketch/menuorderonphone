@@ -134,7 +134,7 @@ const Dashboard = () => {
               <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
                 <DollarSign className="h-4 w-4" /> Today's Revenue
               </div>
-              <p className="text-2xl font-bold text-emerald-600">${(dailyStats.revenue / 100).toFixed(2)}</p>
+              <p className="text-2xl font-bold text-primary">${(dailyStats.revenue / 100).toFixed(2)}</p>
             </div>
             <div className="rounded-lg border border-border bg-card p-4">
               <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">

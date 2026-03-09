@@ -1,6 +1,7 @@
 import { useParams } from "react-router-dom";
 import { useRestaurant } from "@/hooks/useRestaurants";
 import { useCategories } from "@/hooks/useCategories";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { useSubcategories } from "@/hooks/useSubcategories";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +18,10 @@ const PublicMenu = ({ slugOverride }: PublicMenuProps) => {
   const slug = slugOverride || urlSlug;
 
   const { data: restaurant, isLoading: restaurantLoading } = useRestaurant(slug || "");
+  useDocumentTitle(
+    restaurant?.name ? `${restaurant.name} Menu` : "Menu",
+    restaurant?.tagline || "View our digital menu"
+  );
 
   // Fetch full menu data in the same shape PublicMenuStatic expects
   const { data: categories } = useCategories(restaurant?.id || "", {

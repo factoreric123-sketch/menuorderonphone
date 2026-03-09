@@ -79,7 +79,7 @@ const Navbar = () => {
               <Button
                 onClick={() => navigate("/auth?signup=true")}
                 size="lg"
-                className="bg-white hover:bg-white/90 text-black font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-105"
+                className="bg-foreground hover:bg-foreground/90 text-background font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-105"
               >
                 Start Free Trial
               </Button>

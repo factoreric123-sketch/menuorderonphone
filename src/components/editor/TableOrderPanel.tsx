@@ -256,6 +256,42 @@ export function TableOrderPanel({ table, onClose, onRefresh }: TableOrderPanelPr
 
       {/* Content */}
       <div className="flex-1 overflow-auto p-4">
+        {/* QR Code Section */}
+        <div className="mb-4 p-3 rounded-lg border border-border bg-muted/30">
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+              <QrCode className="h-4 w-4" /> Table QR Code
+            </h4>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs"
+              onClick={() => {
+                const canvas = document.getElementById(`qr-table-${table.id}`) as HTMLCanvasElement;
+                if (!canvas) return;
+                const link = document.createElement('a');
+                link.download = `${table.label.replace(/\s+/g, '-')}-qr.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+              }}
+            >
+              <Download className="h-3 w-3 mr-1" /> Download
+            </Button>
+          </div>
+          <div className="flex justify-center bg-white rounded p-2">
+            <QRCodeCanvas
+              id={`qr-table-${table.id}`}
+              value={`${window.location.origin}/menu?table=${table.qr_code_id}`}
+              size={140}
+              level="M"
+              includeMargin
+            />
+          </div>
+          <p className="text-[10px] text-muted-foreground text-center mt-1.5">
+            Scan to order · ID: {table.qr_code_id}
+          </p>
+        </div>
+
         {table.activeOrder ? (
           <div className="space-y-4">
             <div className="space-y-3">

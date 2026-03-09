@@ -1,8 +1,5 @@
 import { useParams } from "react-router-dom";
-import { useRestaurant } from "@/hooks/useRestaurants";
-import { useCategories } from "@/hooks/useCategories";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
-import { useSubcategories } from "@/hooks/useSubcategories";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import PublicMenuStatic from "./PublicMenuStatic";
@@ -17,51 +14,32 @@ const PublicMenu = ({ slugOverride }: PublicMenuProps) => {
   const { slug: urlSlug } = useParams<{ slug: string }>();
   const slug = slugOverride || urlSlug;
 
-  const { data: restaurant, isLoading: restaurantLoading } = useRestaurant(slug || "");
+  // Single RPC call replaces 4 waterfall queries (restaurant + categories + subcategories + dishes)
+  const { data: menuData, isLoading, error } = useQuery({
+    queryKey: ['public-menu', slug],
+    queryFn: async () => {
+      if (!slug) throw new Error('No slug');
+      const { data, error } = await supabase.rpc('get_restaurant_menu_optimized', {
+        p_slug: slug,
+      });
+      if (error) throw error;
+      const parsed = data as any;
+      if (parsed?.error) throw new Error(parsed.error);
+      return parsed as { restaurant: any; categories: any[] };
+    },
+    enabled: !!slug,
+    staleTime: 1000 * 60 * 5, // 5 min cache for public menus
+  });
+
+  const restaurant = menuData?.restaurant;
+  const categories = menuData?.categories || [];
+
   useDocumentTitle(
     restaurant?.name ? `${restaurant.name} Menu` : "Menu",
     restaurant?.tagline || "View our digital menu"
   );
 
-  // Fetch full menu data in the same shape PublicMenuStatic expects
-  const { data: categories } = useCategories(restaurant?.id || "", {
-    enabled: !!restaurant?.id && restaurant?.published === true,
-  });
-
-  const allSubcategoryIds = categories?.map(c => c.id) || [];
-
-  // Fetch subcategories for all categories
-  const { data: allSubcategories } = useQuery({
-    queryKey: ['all-subcategories', allSubcategoryIds],
-    queryFn: async () => {
-      if (!allSubcategoryIds.length) return [];
-      const { data } = await supabase
-        .from('subcategories')
-        .select('*')
-        .in('category_id', allSubcategoryIds)
-        .order('order_index');
-      return data || [];
-    },
-    enabled: allSubcategoryIds.length > 0,
-  });
-
-  // Fetch all dishes for all subcategories
-  const allSubIds = allSubcategories?.map(s => s.id) || [];
-  const { data: allDishes } = useQuery({
-    queryKey: ['all-dishes-for-menu', allSubIds],
-    queryFn: async () => {
-      if (!allSubIds.length) return [];
-      const { data } = await supabase
-        .from('dishes')
-        .select('*')
-        .in('subcategory_id', allSubIds)
-        .order('order_index');
-      return data || [];
-    },
-    enabled: allSubIds.length > 0,
-  });
-
-  if (restaurantLoading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
         <div className="h-64 bg-muted/50 animate-pulse" />
@@ -74,7 +52,7 @@ const PublicMenu = ({ slugOverride }: PublicMenuProps) => {
     );
   }
 
-  if (!restaurant) {
+  if (error || !restaurant) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
@@ -86,34 +64,10 @@ const PublicMenu = ({ slugOverride }: PublicMenuProps) => {
     );
   }
 
-  if (!restaurant.published) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <h1 className="text-3xl font-bold">Menu Not Available</h1>
-          <p className="text-muted-foreground">This menu hasn't been published yet.</p>
-          <Button onClick={() => window.location.href = '/'}>Return Home</Button>
-        </div>
-      </div>
-    );
-  }
-
-  // Build the categories structure that PublicMenuStatic expects
-  const fullCategories = (categories || []).map(cat => {
-    const subs = (allSubcategories || []).filter(s => s.category_id === cat.id);
-    return {
-      ...cat,
-      subcategories: subs.map(sub => ({
-        ...sub,
-        dishes: (allDishes || []).filter(d => d.subcategory_id === sub.id),
-      })),
-    };
-  });
-
   return (
     <PublicMenuStatic
       restaurant={restaurant}
-      categories={fullCategories}
+      categories={categories}
       orderingEnabled={restaurant.ordering_enabled === true}
     />
   );

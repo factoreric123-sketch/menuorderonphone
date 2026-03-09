@@ -321,6 +321,27 @@ const RestaurantHeader = memo(({
                   {tagline}
                 </p>
               )}
+              {/* Contact info strip */}
+              {!editable && (phone || address || todayHours) && (
+                <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-muted-foreground">
+                  {todayHours && (
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {todayHours.closed ? 'Closed today' : `${todayHours.open} – ${todayHours.close}`}
+                    </span>
+                  )}
+                  {phone && (
+                    <a href={`tel:${phone}`} className="flex items-center gap-1 hover:text-foreground transition-colors">
+                      <Phone className="h-3 w-3" /> {phone}
+                    </a>
+                  )}
+                  {address && (
+                    <span className="flex items-center gap-1">
+                      <MapPin className="h-3 w-3" /> {address}
+                    </span>
+                  )}
+                </div>
+              )}
             </>
           )}
         </div>

@@ -1,0 +1,1 @@
+ALTER TABLE public.restaurant_tables ADD COLUMN capacity integer DEFAULT 4;

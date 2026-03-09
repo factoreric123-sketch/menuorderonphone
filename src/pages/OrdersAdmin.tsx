@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import {
   ArrowLeft, ChevronDown, ChevronRight, RefreshCw, Search,
   ClipboardList, ChefHat, DollarSign, ShoppingBag, TrendingUp, XCircle,
-  CheckCircle2, Printer, Store, Volume2, VolumeX,
+  CheckCircle2, Printer, Store, Volume2, VolumeX, Grid3X3,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, isToday, parseISO, startOfDay, endOfDay, subDays } from 'date-fns';
@@ -382,6 +382,9 @@ const OrdersAdmin = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => navigate(`/dashboard/${restaurantId}/floor-plan`)}>
+              <Grid3X3 className="h-4 w-4 mr-1" /> Floor Plan
+            </Button>
             <Button variant="outline" size="sm" onClick={() => navigate(`/dashboard/${restaurantId}/tickets`)}>
               <ChefHat className="h-4 w-4 mr-1" /> Kitchen Board
             </Button>

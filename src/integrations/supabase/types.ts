@@ -667,7 +667,9 @@ export type Database = {
           position_y: number | null
           qr_code_id: string
           restaurant_id: string
+          server_name: string | null
           shape: string | null
+          table_status: string | null
           width: number | null
         }
         Insert: {
@@ -681,7 +683,9 @@ export type Database = {
           position_y?: number | null
           qr_code_id: string
           restaurant_id: string
+          server_name?: string | null
           shape?: string | null
+          table_status?: string | null
           width?: number | null
         }
         Update: {
@@ -695,7 +699,9 @@ export type Database = {
           position_y?: number | null
           qr_code_id?: string
           restaurant_id?: string
+          server_name?: string | null
           shape?: string | null
+          table_status?: string | null
           width?: number | null
         }
         Relationships: [

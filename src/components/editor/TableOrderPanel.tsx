@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { X, Clock, User, DollarSign, UtensilsCrossed, Users, Pencil, Check } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { X, Clock, User, DollarSign, UtensilsCrossed, Users, Pencil, Check, Trash2, CalendarClock, SprayCan, Ban, CheckCircle2 } from 'lucide-react';
 import { formatDistanceToNow, differenceInMinutes } from 'date-fns';
 
 interface TableWithOrder {
@@ -18,6 +19,8 @@ interface TableWithOrder {
   shape: string;
   capacity: number;
   active: boolean;
+  server_name: string | null;
+  table_status: string;
   activeOrder?: {
     id: string;
     guest_name: string;
@@ -53,6 +56,8 @@ export function TableOrderPanel({ table, onClose, onRefresh }: TableOrderPanelPr
   const [capacityValue, setCapacityValue] = useState(table.capacity);
   const [editingLabel, setEditingLabel] = useState(false);
   const [labelValue, setLabelValue] = useState(table.label);
+  const [editingServer, setEditingServer] = useState(false);
+  const [serverValue, setServerValue] = useState(table.server_name || '');
   const [elapsed, setElapsed] = useState('');
 
   useEffect(() => {
@@ -62,6 +67,12 @@ export function TableOrderPanel({ table, onClose, onRefresh }: TableOrderPanelPr
       setItems([]);
     }
   }, [table.activeOrder?.id]);
+
+  useEffect(() => {
+    setLabelValue(table.label);
+    setCapacityValue(table.capacity);
+    setServerValue(table.server_name || '');
+  }, [table.id, table.label, table.capacity, table.server_name]);
 
   // Live elapsed time counter
   useEffect(() => {
@@ -110,6 +121,14 @@ export function TableOrderPanel({ table, onClose, onRefresh }: TableOrderPanelPr
     onRefresh();
   };
 
+  const handleClearTable = async () => {
+    if (!table.activeOrder) return;
+    await supabase.from('orders').update({ status: 'completed' }).eq('id', table.activeOrder.id);
+    // Also set table status to dirty (needs bussing)
+    await supabase.from('restaurant_tables').update({ table_status: 'dirty' } as any).eq('id', table.id);
+    onRefresh();
+  };
+
   const handleSaveCapacity = async () => {
     await supabase.from('restaurant_tables').update({ capacity: capacityValue } as any).eq('id', table.id);
     setEditingCapacity(false);
@@ -121,6 +140,24 @@ export function TableOrderPanel({ table, onClose, onRefresh }: TableOrderPanelPr
     setEditingLabel(false);
     onRefresh();
   };
+
+  const handleSaveServer = async () => {
+    await supabase.from('restaurant_tables').update({ server_name: serverValue || null } as any).eq('id', table.id);
+    setEditingServer(false);
+    onRefresh();
+  };
+
+  const handleTableStatusChange = async (status: string) => {
+    await supabase.from('restaurant_tables').update({ table_status: status } as any).eq('id', table.id);
+    onRefresh();
+  };
+
+  const tableStatusOptions = [
+    { value: 'available', label: 'Available', icon: CheckCircle2, color: 'text-emerald-500' },
+    { value: 'reserved', label: 'Reserved', icon: CalendarClock, color: 'text-violet-500' },
+    { value: 'dirty', label: 'Needs Bussing', icon: SprayCan, color: 'text-orange-500' },
+    { value: 'unavailable', label: 'Unavailable', icon: Ban, color: 'text-muted-foreground' },
+  ];
 
   return (
     <div className="w-80 border-l border-border bg-card flex flex-col">
@@ -147,7 +184,7 @@ export function TableOrderPanel({ table, onClose, onRefresh }: TableOrderPanelPr
         </div>
 
         {/* Capacity */}
-        <div className="flex items-center gap-2 text-sm">
+        <div className="flex items-center gap-2 text-sm mb-2">
           <Users className="h-4 w-4 text-muted-foreground" />
           {editingCapacity ? (
             <div className="flex items-center gap-1">
@@ -169,6 +206,50 @@ export function TableOrderPanel({ table, onClose, onRefresh }: TableOrderPanelPr
             </button>
           )}
           <Badge variant="outline" className="ml-auto capitalize text-xs">{table.shape}</Badge>
+        </div>
+
+        {/* Server Assignment */}
+        <div className="flex items-center gap-2 text-sm mb-2">
+          <User className="h-4 w-4 text-muted-foreground" />
+          {editingServer ? (
+            <div className="flex items-center gap-1 flex-1">
+              <Input
+                value={serverValue}
+                onChange={(e) => setServerValue(e.target.value)}
+                placeholder="Server name"
+                className="h-7 text-sm"
+              />
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleSaveServer}><Check className="h-3 w-3" /></Button>
+            </div>
+          ) : (
+            <button
+              className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
+              onClick={() => { setServerValue(table.server_name || ''); setEditingServer(true); }}
+            >
+              <span>{table.server_name || 'No server'}</span>
+              <Pencil className="h-3 w-3" />
+            </button>
+          )}
+        </div>
+
+        {/* Table Status */}
+        <div className="flex items-center gap-2 text-sm">
+          <Label className="text-muted-foreground text-xs shrink-0">Status:</Label>
+          <Select value={table.table_status} onValueChange={handleTableStatusChange}>
+            <SelectTrigger className="h-7 text-xs flex-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {tableStatusOptions.map(opt => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  <div className="flex items-center gap-1.5">
+                    <opt.icon className={cn('h-3.5 w-3.5', opt.color)} />
+                    <span>{opt.label}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -220,6 +301,17 @@ export function TableOrderPanel({ table, onClose, onRefresh }: TableOrderPanelPr
                   <Button size="sm" onClick={handleMarkPaid}>Mark Paid</Button>
                 )}
               </div>
+
+              {/* Clear Table Button */}
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full border-orange-500/30 text-orange-600 hover:bg-orange-500/10"
+                onClick={handleClearTable}
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Clear Table
+              </Button>
             </div>
 
             <div>

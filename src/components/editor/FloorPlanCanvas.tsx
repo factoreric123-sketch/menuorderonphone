@@ -1,7 +1,7 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
-import { Users, Trash2 } from 'lucide-react';
+import { Users, Trash2, Ban, CalendarClock, SprayCan } from 'lucide-react';
 
 interface TableWithOrder {
   id: string;
@@ -14,6 +14,8 @@ interface TableWithOrder {
   shape: string;
   capacity: number;
   active: boolean;
+  server_name: string | null;
+  table_status: string;
   activeOrder?: {
     id: string;
     guest_name: string;
@@ -122,7 +124,7 @@ export function FloorPlanCanvas({
     }
   }, [dragging, resizing, handleMouseMove, handleMouseUp]);
 
-  const getStatusColor = (status?: string) => {
+  const getOrderStatusColor = (status?: string) => {
     switch (status) {
       case 'pending': return 'bg-amber-500';
       case 'preparing': return 'bg-blue-500';
@@ -131,12 +133,32 @@ export function FloorPlanCanvas({
     }
   };
 
-  const getStatusBorder = (status?: string) => {
+  const getTableStatusStyles = (table: TableWithOrder) => {
+    // Order status takes priority over table status visually
+    if (table.activeOrder) {
+      const orderStatus = table.activeOrder.status;
+      switch (orderStatus) {
+        case 'pending': return { border: 'border-amber-500/50', bg: 'bg-card shadow-lg' };
+        case 'preparing': return { border: 'border-blue-500/50', bg: 'bg-card shadow-lg' };
+        case 'ready': return { border: 'border-emerald-500/50', bg: 'bg-card shadow-lg' };
+      }
+    }
+
+    // Table status when no active order
+    switch (table.table_status) {
+      case 'reserved': return { border: 'border-violet-500/50', bg: 'bg-violet-500/10' };
+      case 'dirty': return { border: 'border-orange-500/50', bg: 'bg-orange-500/10' };
+      case 'unavailable': return { border: 'border-muted-foreground/30', bg: 'bg-muted/60 opacity-60' };
+      default: return { border: 'border-border hover:border-primary/50', bg: 'bg-card/50' };
+    }
+  };
+
+  const getTableStatusIcon = (status: string) => {
     switch (status) {
-      case 'pending': return 'border-amber-500/50';
-      case 'preparing': return 'border-blue-500/50';
-      case 'ready': return 'border-emerald-500/50';
-      default: return 'border-border';
+      case 'reserved': return <CalendarClock className="h-3 w-3 text-violet-500" />;
+      case 'dirty': return <SprayCan className="h-3 w-3 text-orange-500" />;
+      case 'unavailable': return <Ban className="h-3 w-3 text-muted-foreground" />;
+      default: return null;
     }
   };
 
@@ -157,18 +179,16 @@ export function FloorPlanCanvas({
         const elapsed = hasOrder
           ? formatDistanceToNow(new Date(table.activeOrder!.created_at), { addSuffix: false })
           : null;
+        const styles = getTableStatusStyles(table);
+        const statusIcon = !hasOrder ? getTableStatusIcon(table.table_status) : null;
 
         return (
           <div
             key={table.id}
             className={cn(
-              'absolute flex flex-col items-center justify-center transition-all cursor-pointer select-none',
-              isSelected
-                ? 'border-primary ring-2 ring-primary/30'
-                : hasOrder
-                  ? getStatusBorder(table.activeOrder?.status)
-                  : 'border-border hover:border-primary/50',
-              hasOrder ? 'bg-card shadow-lg border-2' : 'bg-card/50 border-2',
+              'absolute flex flex-col items-center justify-center transition-all cursor-pointer select-none border-2',
+              isSelected ? 'border-primary ring-2 ring-primary/30' : styles.border,
+              styles.bg,
               editMode && 'cursor-grab',
               dragging?.tableId === table.id && 'cursor-grabbing opacity-80 scale-105'
             )}
@@ -182,11 +202,16 @@ export function FloorPlanCanvas({
             onMouseDown={(e) => handleMouseDown(e, table)}
             onDoubleClick={() => editMode && onTableShapeToggle(table.id)}
           >
-            {/* Status indicator */}
+            {/* Status indicator dot */}
             <div
               className={cn(
                 'absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full border-2 border-background',
-                getStatusColor(table.activeOrder?.status)
+                hasOrder ? getOrderStatusColor(table.activeOrder?.status) : (
+                  table.table_status === 'reserved' ? 'bg-violet-500' :
+                  table.table_status === 'dirty' ? 'bg-orange-500' :
+                  table.table_status === 'unavailable' ? 'bg-muted-foreground/40' :
+                  'bg-muted'
+                )
               )}
             />
 
@@ -214,10 +239,22 @@ export function FloorPlanCanvas({
               />
             )}
 
+            {/* Table status icon (when no order) */}
+            {statusIcon && !hasOrder && (
+              <div className="mb-0.5">{statusIcon}</div>
+            )}
+
             {/* Table label */}
             <span className="text-xs font-semibold text-foreground truncate px-1">
               {table.label}
             </span>
+
+            {/* Server name */}
+            {table.server_name && (
+              <span className="text-[9px] text-muted-foreground truncate px-1 max-w-full">
+                {table.server_name}
+              </span>
+            )}
 
             {/* Order info with time elapsed */}
             {hasOrder && (

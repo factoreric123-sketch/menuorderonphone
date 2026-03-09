@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { useDebounce } from "use-debounce";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Trash2, Image as ImageIcon, ChevronDown, Flame, Sparkles, Star, TrendingUp, ChefHat, Wheat, Milk, Egg, Fish, Shell, Nut, Sprout, Beef, Bird, Leaf, Salad, DollarSign, Crop } from "lucide-react";
+import { GripVertical, Trash2, Image as ImageIcon, ChevronDown, Flame, Sparkles, Star, TrendingUp, ChefHat, Wheat, Milk, Egg, Fish, Shell, Nut, Sprout, Beef, Bird, Leaf, Salad, DollarSign, Crop, Copy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { InlineEdit } from "./InlineEdit";
-import { useUpdateDish, useDeleteDish, type Dish } from "@/hooks/useDishes";
+import { useUpdateDish, useDeleteDish, useCreateDish, type Dish } from "@/hooks/useDishes";
 import { ImageCropModal } from "@/components/ImageCropModal";
 import { useImageUpload } from "@/hooks/useImageUpload";
 import { ALLERGEN_OPTIONS } from "@/components/AllergenFilter";
@@ -43,6 +43,7 @@ const SortableDishInner = ({ dish, subcategoryId, restaurantId, forceTwoDecimals
   });
   const updateDish = useUpdateDish();
   const deleteDish = useDeleteDish();
+  const createDish = useCreateDish();
   const uploadImage = useImageUpload();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showCropModal, setShowCropModal] = useState(false);
@@ -199,6 +200,26 @@ const SortableDishInner = ({ dish, subcategoryId, restaurantId, forceTwoDecimals
     setShowDeleteDialog(false);
   };
 
+  const handleDuplicate = () => {
+    createDish.mutate({
+      subcategory_id: subcategoryId,
+      name: `${dish.name} (copy)`,
+      description: dish.description || '',
+      price: dish.price,
+      image_url: dish.image_url,
+      is_new: dish.is_new,
+      is_special: dish.is_special,
+      is_popular: dish.is_popular,
+      is_chef_recommendation: dish.is_chef_recommendation,
+      allergens: dish.allergens,
+      calories: dish.calories,
+      is_vegetarian: dish.is_vegetarian,
+      is_vegan: dish.is_vegan,
+      is_spicy: dish.is_spicy,
+      order_index: dish.order_index + 1,
+    });
+  };
+
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -343,6 +364,13 @@ const SortableDishInner = ({ dish, subcategoryId, restaurantId, forceTwoDecimals
               />
             </label>
           )}
+          <button
+            onClick={handleDuplicate}
+            className="bg-background/90 backdrop-blur p-1.5 rounded-md hover:bg-primary hover:text-primary-foreground transition-colors"
+            title="Duplicate dish"
+          >
+            <Copy className="h-4 w-4" />
+          </button>
           <button
             onClick={() => setShowDeleteDialog(true)}
             className="bg-background/90 backdrop-blur p-1.5 rounded-md hover:bg-destructive hover:text-destructive-foreground transition-colors"

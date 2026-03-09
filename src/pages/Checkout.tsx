@@ -18,6 +18,23 @@ const Checkout = () => {
   const [notes, setNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'pay_at_table' | 'stripe'>('pay_at_table');
   const [submitting, setSubmitting] = useState(false);
+  const [taxRate, setTaxRate] = useState(0);
+
+  // Fetch restaurant tax rate
+  useEffect(() => {
+    if (!restaurantId) return;
+    supabase
+      .from('restaurants')
+      .select('tax_rate')
+      .eq('id', restaurantId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.tax_rate) setTaxRate(parseFloat(String(data.tax_rate)));
+      });
+  }, [restaurantId]);
+
+  const taxCents = Math.round(totalCents * taxRate);
+  const grandTotalCents = totalCents + taxCents;
 
   if (items.length === 0) {
     return (

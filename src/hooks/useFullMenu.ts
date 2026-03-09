@@ -57,7 +57,7 @@ export const useFullMenu = (
   const applyBufferedUpdates = useCallback((initialData: FullMenuData): FullMenuData => {
     if (pendingBuffer.current.length === 0) return initialData;
     
-    console.log('[useFullMenu] Applying buffered updates:', pendingBuffer.current.length);
+    logger.debug('[useFullMenu] Applying buffered updates:', pendingBuffer.current.length);
     
     let result = initialData;
     pendingBuffer.current.forEach(({ updater, updateId, version }) => {

@@ -84,7 +84,7 @@ export const useFullMenu = (
     if (!restaurantId) return;
     
     try {
-      console.log('[useFullMenu] Fetching menu for:', restaurantId);
+      logger.debug('[useFullMenu] Fetching menu for:', restaurantId);
       setIsLoading(true);
       
       const { data: menuData, error: rpcError } = await supabase.rpc('get_restaurant_full_menu', {

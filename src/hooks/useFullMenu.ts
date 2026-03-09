@@ -176,7 +176,7 @@ export const useFullMenu = (
             logger.debug('[useFullMenu] Updater returned null (no change needed):', updateId);
           }
         } catch (err) {
-          console.error('[useFullMenu] Failed to apply update:', err);
+          logger.error('[useFullMenu] Failed to apply update:', err);
         }
       } else {
         // Buffer update for when data loads

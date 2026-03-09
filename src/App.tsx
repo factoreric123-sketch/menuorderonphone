@@ -81,6 +81,7 @@ const App = () => (
             <Route path="/terms" element={<TermsOfService />} />
             <Route path="/cookies" element={<CookiePolicy />} />
             <Route path="/gdpr" element={<GDPR />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/business-card" element={<BusinessCard />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/order-status/:orderId" element={<OrderStatus />} />

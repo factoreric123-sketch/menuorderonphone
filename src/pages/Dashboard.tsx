@@ -16,6 +16,7 @@ import { toast } from "@/hooks/use-toast";
 import { isToday, parseISO } from 'date-fns';
 
 const Dashboard = () => {
+  useDocumentTitle("Dashboard", "Manage your restaurants and digital menus");
   const { signOut, user } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();

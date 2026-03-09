@@ -49,8 +49,13 @@ const Checkout = () => {
   }
 
   const handleSubmit = async () => {
-    if (!guestName.trim()) {
-      toast.error('Please enter your name');
+    const trimmedName = guestName.trim();
+    if (!trimmedName || trimmedName.length > 100) {
+      toast.error('Please enter a valid name (max 100 characters)');
+      return;
+    }
+    if (guestPhone.trim() && !/^[+\d\s()-]{0,20}$/.test(guestPhone.trim())) {
+      toast.error('Please enter a valid phone number');
       return;
     }
 

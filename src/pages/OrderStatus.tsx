@@ -20,18 +20,23 @@ const OrderStatus = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!orderId) return;
+    if (!orderId || !sessionToken) {
+      setLoading(false);
+      return;
+    }
 
     const fetchOrder = async () => {
+      // Use the session token header so RLS policy grants access
       const { data, error } = await supabase
         .from('orders')
         .select('*')
         .eq('id', orderId)
-        .maybeSingle();
+        .maybeSingle()
+        .setHeader('x-session-token', sessionToken);
 
       if (!error && data) {
-        // Only show if session_token matches (basic security for anonymous)
-        if (data.session_token === sessionToken || sessionToken === null) {
+        // Double-check token matches client-side as defense in depth
+        if (data.session_token === sessionToken) {
           setOrder(data);
         }
       }
@@ -40,7 +45,8 @@ const OrderStatus = () => {
         .from('order_items')
         .select('*')
         .eq('order_id', orderId)
-        .order('created_at');
+        .order('created_at')
+        .setHeader('x-session-token', sessionToken);
 
       if (itemsData) setItems(itemsData);
       setLoading(false);
@@ -52,7 +58,7 @@ const OrderStatus = () => {
     const channel = supabase
       .channel(`order-${orderId}`)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` }, (payload) => {
-        setOrder((prev: any) => ({ ...prev, ...payload.new }));
+        setOrder((prev: any) => prev ? { ...prev, ...payload.new } : prev);
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'order_items', filter: `order_id=eq.${orderId}` }, (payload) => {
         setItems((prev) => prev.map((i) => (i.id === payload.new.id ? { ...i, ...payload.new } : i)));

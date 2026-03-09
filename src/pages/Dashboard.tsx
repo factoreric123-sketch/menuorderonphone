@@ -1,17 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRestaurants } from "@/hooks/useRestaurants";
 import { useSubscription } from "@/hooks/useSubscription";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Plus, LogOut, Crown, Settings } from "lucide-react";
+import { Plus, LogOut, Crown, Settings, ShoppingBag, DollarSign, TrendingUp, Clock } from "lucide-react";
 import { CreateRestaurantModal } from "@/components/CreateRestaurantModal";
 import { RestaurantCard } from "@/components/RestaurantCard";
 import { PremiumBadge } from "@/components/PremiumBadge";
 import { PaywallModal } from "@/components/PaywallModal";
 import { AccountSettingsDialog } from "@/components/AccountSettingsDialog";
 import { toast } from "@/hooks/use-toast";
+import { isToday, parseISO } from 'date-fns';
 
 const Dashboard = () => {
   const { signOut, user } = useAuth();

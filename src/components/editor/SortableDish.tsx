@@ -200,6 +200,26 @@ const SortableDishInner = ({ dish, subcategoryId, restaurantId, forceTwoDecimals
     setShowDeleteDialog(false);
   };
 
+  const handleDuplicate = () => {
+    createDish.mutate({
+      subcategory_id: subcategoryId,
+      name: `${dish.name} (copy)`,
+      description: dish.description || '',
+      price: dish.price,
+      image_url: dish.image_url,
+      is_new: dish.is_new,
+      is_special: dish.is_special,
+      is_popular: dish.is_popular,
+      is_chef_recommendation: dish.is_chef_recommendation,
+      allergens: dish.allergens,
+      calories: dish.calories,
+      is_vegetarian: dish.is_vegetarian,
+      is_vegan: dish.is_vegan,
+      is_spicy: dish.is_spicy,
+      order_index: dish.order_index + 1,
+    });
+  };
+
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {

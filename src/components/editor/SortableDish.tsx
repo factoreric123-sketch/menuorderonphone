@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { InlineEdit } from "./InlineEdit";
-import { useUpdateDish, useDeleteDish, type Dish } from "@/hooks/useDishes";
+import { useUpdateDish, useDeleteDish, useCreateDish, type Dish } from "@/hooks/useDishes";
 import { ImageCropModal } from "@/components/ImageCropModal";
 import { useImageUpload } from "@/hooks/useImageUpload";
 import { ALLERGEN_OPTIONS } from "@/components/AllergenFilter";

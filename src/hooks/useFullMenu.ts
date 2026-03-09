@@ -206,7 +206,7 @@ export const useFullMenu = (
     // PRIORITY 1: React Query cache (has optimistic updates)
     const rqCached = queryClient.getQueryData<FullMenuData>(['full-menu', restaurantId]);
     if (rqCached) {
-      console.log('[useFullMenu] Using React Query cache');
+      logger.debug('[useFullMenu] Using React Query cache');
       let finalData = rqCached;
       
       // Apply any pending updates

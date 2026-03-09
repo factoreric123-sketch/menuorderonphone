@@ -1,0 +1,4 @@
+ALTER TABLE public.restaurants 
+ADD COLUMN IF NOT EXISTS business_hours jsonb DEFAULT NULL,
+ADD COLUMN IF NOT EXISTS phone text DEFAULT NULL,
+ADD COLUMN IF NOT EXISTS address text DEFAULT NULL;

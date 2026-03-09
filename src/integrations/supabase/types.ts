@@ -723,9 +723,11 @@ export type Database = {
       }
       restaurants: {
         Row: {
+          address: string | null
           allergen_filter_order: Json | null
           badge_colors: Json | null
           badge_display_order: Json | null
+          business_hours: Json | null
           card_image_shape: string | null
           created_at: string | null
           dietary_filter_order: Json | null
@@ -742,6 +744,7 @@ export type Database = {
           name: string
           ordering_enabled: boolean
           owner_id: string
+          phone: string | null
           published: boolean | null
           show_allergen_filter: boolean | null
           show_currency_symbol: boolean | null
@@ -755,9 +758,11 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          address?: string | null
           allergen_filter_order?: Json | null
           badge_colors?: Json | null
           badge_display_order?: Json | null
+          business_hours?: Json | null
           card_image_shape?: string | null
           created_at?: string | null
           dietary_filter_order?: Json | null
@@ -774,6 +779,7 @@ export type Database = {
           name: string
           ordering_enabled?: boolean
           owner_id: string
+          phone?: string | null
           published?: boolean | null
           show_allergen_filter?: boolean | null
           show_currency_symbol?: boolean | null
@@ -787,9 +793,11 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          address?: string | null
           allergen_filter_order?: Json | null
           badge_colors?: Json | null
           badge_display_order?: Json | null
+          business_hours?: Json | null
           card_image_shape?: string | null
           created_at?: string | null
           dietary_filter_order?: Json | null
@@ -806,6 +814,7 @@ export type Database = {
           name?: string
           ordering_enabled?: boolean
           owner_id?: string
+          phone?: string | null
           published?: boolean | null
           show_allergen_filter?: boolean | null
           show_currency_symbol?: boolean | null

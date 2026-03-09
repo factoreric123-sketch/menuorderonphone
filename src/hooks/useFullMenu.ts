@@ -139,7 +139,7 @@ export const useFullMenu = (
   useEffect(() => {
     if (!restaurantId) return;
 
-    console.log('[useFullMenu] Setting up sync subscription for:', restaurantId);
+    logger.debug('[useFullMenu] Setting up sync subscription for:', restaurantId);
     isSubscribed.current = true;
 
     const handleUpdate = (payload: any) => {

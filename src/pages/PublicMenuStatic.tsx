@@ -134,6 +134,26 @@ const PublicMenuStatic = ({ restaurant, categories, onCategoryChange, tableQrCod
   }, [allDishes, subcategories]);
 
   // Filter dishes based on selections
+  // Search across ALL categories
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim()) return null;
+    const q = searchQuery.toLowerCase();
+    const results: (Dish & { available?: boolean; _subcategoryName?: string })[] = [];
+    categories?.forEach((cat: any) => {
+      cat.subcategories?.forEach((sub: any) => {
+        sub.dishes?.forEach((dish: any) => {
+          if (
+            dish.name?.toLowerCase().includes(q) ||
+            dish.description?.toLowerCase().includes(q)
+          ) {
+            results.push({ ...dish, available: dish.available !== false, _subcategoryName: sub.name });
+          }
+        });
+      });
+    });
+    return results;
+  }, [searchQuery, categories]);
+
   const getFilteredDishes = useCallback(
     (dishesToFilter: Dish[]) => {
       if (

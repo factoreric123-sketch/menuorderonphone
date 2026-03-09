@@ -1,6 +1,7 @@
 import { useParams } from "react-router-dom";
 import { useRestaurant } from "@/hooks/useRestaurants";
 import { useCategories } from "@/hooks/useCategories";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { useSubcategories } from "@/hooks/useSubcategories";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";

@@ -18,6 +18,10 @@ const PublicMenu = ({ slugOverride }: PublicMenuProps) => {
   const slug = slugOverride || urlSlug;
 
   const { data: restaurant, isLoading: restaurantLoading } = useRestaurant(slug || "");
+  useDocumentTitle(
+    restaurant?.name ? `${restaurant.name} Menu` : "Menu",
+    restaurant?.tagline || "View our digital menu"
+  );
 
   // Fetch full menu data in the same shape PublicMenuStatic expects
   const { data: categories } = useCategories(restaurant?.id || "", {

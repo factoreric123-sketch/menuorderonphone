@@ -1,7 +1,9 @@
 import PageLayout from "@/components/layouts/PageLayout";
 import ContactForm from "@/components/ContactForm";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 const Contact = () => {
+  useDocumentTitle("Contact Us", "Have a question? Send us a message and we'll respond within 24 hours.");
   return (
     <PageLayout>
       {/* Hero */}

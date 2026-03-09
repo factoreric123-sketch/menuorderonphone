@@ -92,7 +92,7 @@ const Footer = () => {
         {/* Bottom Bar */}
         <div className="mt-12 pt-8 border-t border-border">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-muted-foreground">
-            <p>© {currentYear} All rights reserved.</p>
+            <p>© {currentYear} MenuCraft. All rights reserved.</p>
           </div>
         </div>
       </div>

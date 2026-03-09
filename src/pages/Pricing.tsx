@@ -1,8 +1,10 @@
 import PageLayout from "@/components/layouts/PageLayout";
 import PricingCard from "@/components/PricingCard";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 const Pricing = () => {
+  useDocumentTitle("Pricing", "Simple, transparent pricing. Start free, upgrade when you need more.");
   const pricingPlans = [
     {
       title: "Basic",

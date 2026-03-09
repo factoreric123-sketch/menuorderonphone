@@ -119,6 +119,36 @@ const Dashboard = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        {/* Quick Stats */}
+        {restaurants.length > 0 && !isLoading && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div className="rounded-lg border border-border bg-card p-4">
+              <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                <ShoppingBag className="h-4 w-4" /> Today's Orders
+              </div>
+              <p className="text-2xl font-bold text-foreground">{dailyStats.orders}</p>
+            </div>
+            <div className="rounded-lg border border-border bg-card p-4">
+              <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                <DollarSign className="h-4 w-4" /> Today's Revenue
+              </div>
+              <p className="text-2xl font-bold text-emerald-600">${(dailyStats.revenue / 100).toFixed(2)}</p>
+            </div>
+            <div className="rounded-lg border border-border bg-card p-4">
+              <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                <Clock className="h-4 w-4" /> Active Orders
+              </div>
+              <p className="text-2xl font-bold text-foreground">{dailyStats.active}</p>
+            </div>
+            <div className="rounded-lg border border-border bg-card p-4">
+              <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                <TrendingUp className="h-4 w-4" /> Restaurants
+              </div>
+              <p className="text-2xl font-bold text-foreground">{restaurants.length}</p>
+            </div>
+          </div>
+        )}
+
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Create card skeleton */}

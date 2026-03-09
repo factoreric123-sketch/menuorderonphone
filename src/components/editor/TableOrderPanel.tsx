@@ -5,8 +5,9 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { X, Clock, User, DollarSign, UtensilsCrossed, Users, Pencil, Check, Trash2, CalendarClock, SprayCan, Ban, CheckCircle2 } from 'lucide-react';
+import { X, Clock, User, DollarSign, UtensilsCrossed, Users, Pencil, Check, Trash2, CalendarClock, SprayCan, Ban, CheckCircle2, QrCode, Download } from 'lucide-react';
 import { formatDistanceToNow, differenceInMinutes } from 'date-fns';
+import { QRCodeCanvas } from 'qrcode.react';
 
 interface TableWithOrder {
   id: string;

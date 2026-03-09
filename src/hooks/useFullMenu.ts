@@ -155,7 +155,7 @@ export const useFullMenu = (
       
       // Skip if version is older than last applied
       if (version && version <= lastAppliedVersion.current) {
-        console.log('[useFullMenu] Skipping older version:', version, 'last:', lastAppliedVersion.current);
+        logger.debug('[useFullMenu] Skipping older version:', version, 'last:', lastAppliedVersion.current);
         return;
       }
 

@@ -1,17 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRestaurants } from "@/hooks/useRestaurants";
 import { useSubscription } from "@/hooks/useSubscription";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Plus, LogOut, Crown, Settings } from "lucide-react";
+import { Plus, LogOut, Crown, Settings, ShoppingBag, DollarSign, TrendingUp, Clock } from "lucide-react";
 import { CreateRestaurantModal } from "@/components/CreateRestaurantModal";
 import { RestaurantCard } from "@/components/RestaurantCard";
 import { PremiumBadge } from "@/components/PremiumBadge";
 import { PaywallModal } from "@/components/PaywallModal";
 import { AccountSettingsDialog } from "@/components/AccountSettingsDialog";
 import { toast } from "@/hooks/use-toast";
+import { isToday, parseISO } from 'date-fns';
 
 const Dashboard = () => {
   const { signOut, user } = useAuth();
@@ -25,6 +26,26 @@ const Dashboard = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [showAccountSettings, setShowAccountSettings] = useState(false);
+  const [dailyStats, setDailyStats] = useState({ orders: 0, revenue: 0, active: 0 });
+
+  // Fetch today's stats across all restaurants
+  useEffect(() => {
+    if (!user?.id || restaurants.length === 0) return;
+    const restaurantIds = restaurants.map(r => r.id);
+    supabase
+      .from('orders')
+      .select('id, status, total_cents, created_at')
+      .in('restaurant_id', restaurantIds)
+      .then(({ data }) => {
+        if (!data) return;
+        const todayOrders = data.filter(o => isToday(parseISO(o.created_at)));
+        const active = data.filter(o => ['pending', 'preparing', 'ready'].includes(o.status)).length;
+        const revenue = todayOrders
+          .filter(o => o.status === 'completed')
+          .reduce((sum, o) => sum + o.total_cents, 0);
+        setDailyStats({ orders: todayOrders.length, revenue, active });
+      });
+  }, [user?.id, restaurants.length]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -98,6 +119,36 @@ const Dashboard = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        {/* Quick Stats */}
+        {restaurants.length > 0 && !isLoading && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div className="rounded-lg border border-border bg-card p-4">
+              <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                <ShoppingBag className="h-4 w-4" /> Today's Orders
+              </div>
+              <p className="text-2xl font-bold text-foreground">{dailyStats.orders}</p>
+            </div>
+            <div className="rounded-lg border border-border bg-card p-4">
+              <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                <DollarSign className="h-4 w-4" /> Today's Revenue
+              </div>
+              <p className="text-2xl font-bold text-emerald-600">${(dailyStats.revenue / 100).toFixed(2)}</p>
+            </div>
+            <div className="rounded-lg border border-border bg-card p-4">
+              <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                <Clock className="h-4 w-4" /> Active Orders
+              </div>
+              <p className="text-2xl font-bold text-foreground">{dailyStats.active}</p>
+            </div>
+            <div className="rounded-lg border border-border bg-card p-4">
+              <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                <TrendingUp className="h-4 w-4" /> Restaurants
+              </div>
+              <p className="text-2xl font-bold text-foreground">{restaurants.length}</p>
+            </div>
+          </div>
+        )}
+
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Create card skeleton */}

@@ -411,45 +411,94 @@ const PublicMenuStatic = ({ restaurant, categories, onCategoryChange, tableQrCod
       </div>
       )}
 
-      {/* Main Content - Progressive Render */}
+      {/* Main Content */}
       <main>
-        {subcategories?.map((subcategory: any, index: number) => {
-          const subcategoryDishes = dishesBySubcategory[subcategory.name] || [];
-          const filteredDishes = getFilteredDishes(subcategoryDishes);
+        {/* Search Results */}
+        {searchResults !== null ? (
+          searchResults.length > 0 ? (
+            <MenuGrid 
+              dishes={searchResults.map((dish) => ({
+                id: dish.id,
+                name: dish.name,
+                description: dish.description,
+                price: dish.price,
+                image: dish.image_url || '/placeholder.svg',
+                isNew: dish.is_new,
+                isSpecial: dish.is_special,
+                isPopular: dish.is_popular,
+                isChefRecommendation: dish.is_chef_recommendation,
+                category: '',
+                subcategory: (dish as any)._subcategoryName || '',
+                allergens: dish.allergens || [],
+                calories: dish.calories,
+                isVegetarian: dish.is_vegetarian,
+                isVegan: dish.is_vegan,
+                isSpicy: dish.is_spicy,
+                hasOptions: dish.has_options || ((dish as any).options?.length ?? 0) > 0,
+                options: (dish as any).options || [],
+                modifiers: (dish as any).modifiers || [],
+              }))}
+              sectionTitle={`${searchResults.length} result${searchResults.length !== 1 ? 's' : ''}`}
+              gridColumns={restaurant.grid_columns || 2}
+              layoutDensity={restaurant.layout_density || 'compact'}
+              fontSize={restaurant.menu_font_size || 'medium'}
+              showPrice={restaurant.show_prices !== false}
+              showImage={restaurant.show_images !== false}
+              showAllergens={restaurant.show_allergens_on_cards !== false}
+              imageSize={restaurant.image_size || 'compact'}
+              forceTwoDecimals={restaurant.force_two_decimals === true}
+              showCurrencySymbol={restaurant.show_currency_symbol !== false}
+              layoutStyle={restaurant.layout_style || 'generic'}
+              badgeColors={restaurant.badge_colors}
+              cardImageShape={restaurant.card_image_shape || 'vertical'}
+              textOverlay={restaurant.text_overlay === true}
+              menuFont={restaurant.menu_font || 'Inter'}
+              onDishClick={handleDishClick}
+            />
+          ) : (
+            <div className="text-center py-16 text-muted-foreground">
+              <Search className="h-10 w-10 mx-auto mb-3 opacity-40" />
+              <p className="text-lg font-medium">No dishes found</p>
+              <p className="text-sm">Try a different search term</p>
+            </div>
+          )
+        ) : (
+          /* Normal category view */
+          subcategories?.map((subcategory: any, index: number) => {
+            const subcategoryDishes = dishesBySubcategory[subcategory.name] || [];
+            const filteredDishes = getFilteredDishes(subcategoryDishes);
 
-          if (filteredDishes.length === 0) return null;
+            if (filteredDishes.length === 0) return null;
 
-          const transformedDishes = filteredDishes.map((dish) => ({
-            id: dish.id,
-            name: dish.name,
-            description: dish.description,
-            price: dish.price,
-            image: dish.image_url || '/placeholder.svg',
-            isNew: dish.is_new,
-            isSpecial: dish.is_special,
-            isPopular: dish.is_popular,
-            isChefRecommendation: dish.is_chef_recommendation,
-            category: activeCategoryName,
-            subcategory: subcategory.name,
-            allergens: dish.allergens || [],
-            calories: dish.calories,
-            isVegetarian: dish.is_vegetarian,
-            isVegan: dish.is_vegan,
-            isSpicy: dish.is_spicy,
-            hasOptions: dish.has_options || (dish.options?.length ?? 0) > 0,
-            options: dish.options || [],
-            modifiers: dish.modifiers || [],
-          }));
+            const transformedDishes = filteredDishes.map((dish) => ({
+              id: dish.id,
+              name: dish.name,
+              description: dish.description,
+              price: dish.price,
+              image: dish.image_url || '/placeholder.svg',
+              isNew: dish.is_new,
+              isSpecial: dish.is_special,
+              isPopular: dish.is_popular,
+              isChefRecommendation: dish.is_chef_recommendation,
+              category: activeCategoryName,
+              subcategory: subcategory.name,
+              allergens: dish.allergens || [],
+              calories: dish.calories,
+              isVegetarian: dish.is_vegetarian,
+              isVegan: dish.is_vegan,
+              isSpicy: dish.is_spicy,
+              hasOptions: dish.has_options || (dish.options?.length ?? 0) > 0,
+              options: dish.options || [],
+              modifiers: dish.modifiers || [],
+            }));
 
-          // Render first subcategory immediately, defer others
-          if (index > 0) {
             return (
               <div
                 key={subcategory.id}
                 ref={(el) => {
                   subcategoryRefs.current[subcategory.name] = el;
                 }}
-                style={{ contentVisibility: 'auto' }}
+                style={index > 0 ? { contentVisibility: 'auto' } : undefined}
               >
                 <MenuGrid 
                   dishes={transformedDishes} 
@@ -472,37 +521,8 @@ const PublicMenuStatic = ({ restaurant, categories, onCategoryChange, tableQrCod
                 />
               </div>
             );
-          }
-
-          return (
-            <div
-              key={subcategory.id}
-              ref={(el) => {
-                subcategoryRefs.current[subcategory.name] = el;
-              }}
-            >
-              <MenuGrid 
-                dishes={transformedDishes} 
-                sectionTitle={subcategory.name}
-                gridColumns={restaurant.grid_columns || 2}
-                layoutDensity={restaurant.layout_density || 'compact'}
-                fontSize={restaurant.menu_font_size || 'medium'}
-                showPrice={restaurant.show_prices !== false}
-                showImage={restaurant.show_images !== false}
-                showAllergens={restaurant.show_allergens_on_cards !== false}
-                imageSize={restaurant.image_size || 'compact'}
-                forceTwoDecimals={restaurant.force_two_decimals === true}
-                showCurrencySymbol={restaurant.show_currency_symbol !== false}
-                layoutStyle={restaurant.layout_style || 'generic'}
-                badgeColors={restaurant.badge_colors}
-                cardImageShape={restaurant.card_image_shape || 'vertical'}
-                textOverlay={restaurant.text_overlay === true}
-                menuFont={restaurant.menu_font || 'Inter'}
-                onDishClick={handleDishClick}
-              />
-            </div>
-          );
-        })}
+          })
+        )}
       </main>
 
       {/* Single shared dish detail dialog */}

@@ -6,6 +6,27 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// Simple in-memory rate limiter (per Deno isolate)
+const rateLimitMap = new Map<string, number[]>();
+const RATE_LIMIT_WINDOW = 60_000; // 1 minute
+const RATE_LIMIT_MAX = 5; // max 5 orders per minute per IP
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const timestamps = rateLimitMap.get(ip) || [];
+  const recent = timestamps.filter(t => now - t < RATE_LIMIT_WINDOW);
+  if (recent.length >= RATE_LIMIT_MAX) return true;
+  recent.push(now);
+  rateLimitMap.set(ip, recent);
+  // Cleanup old entries periodically
+  if (rateLimitMap.size > 10000) {
+    for (const [key, val] of rateLimitMap) {
+      if (val.every(t => now - t > RATE_LIMIT_WINDOW)) rateLimitMap.delete(key);
+    }
+  }
+  return false;
+}
+
 // Input validation helpers
 function sanitizeString(val: unknown, maxLen: number): string {
   if (typeof val !== "string") return "";

@@ -112,7 +112,7 @@ export const useFullMenu = (
           const entry: CacheEntry = { data: parsed, timestamp: Date.now() };
           localStorage.setItem(cacheKey, JSON.stringify(entry));
         } catch (err) {
-          console.warn('[useFullMenu] Failed to cache:', err);
+          logger.warn('[useFullMenu] Failed to cache:', err);
         }
       }
       

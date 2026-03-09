@@ -29,9 +29,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
-    // Initial session check - listener will fire immediately if session exists
-    // No duplicate setLoading(false) call here - let onAuthStateChange handle it
-    supabase.auth.getSession();
+    // Explicitly get session - critical for OAuth redirects where tokens are in URL hash
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      // Only set if listener hasn't already fired with a valid session
+      if (session) {
+        setSession(session);
+        setUser(session.user);
+      }
+      setLoading(false);
+    });
 
     return () => subscription.unsubscribe();
   }, []);

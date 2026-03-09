@@ -65,8 +65,10 @@ export const useRestaurants = () => {
       return data as unknown as Restaurant[];
     },
     enabled: !!userId,
-    staleTime: 1000 * 60 * 2, // 2 minutes - restaurants don't change often
-    gcTime: 1000 * 60 * 15, // 15 minutes cache
+    staleTime: 1000 * 60 * 2,
+    gcTime: 1000 * 60 * 15,
+    refetchOnMount: 'always', // Override global setting - critical for OAuth redirects
+    refetchOnWindowFocus: true, // Ensure data refreshes after OAuth tab switch
   });
 };
 

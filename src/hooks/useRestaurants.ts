@@ -44,6 +44,9 @@ export interface Restaurant {
   show_allergens_on_cards?: boolean;
   ordering_enabled?: boolean;
   tax_rate?: number;
+  business_hours?: Record<string, { open: string; close: string; closed?: boolean }> | null;
+  phone?: string | null;
+  address?: string | null;
 }
 
 export const useRestaurants = () => {

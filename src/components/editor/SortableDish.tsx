@@ -365,6 +365,13 @@ const SortableDishInner = ({ dish, subcategoryId, restaurantId, forceTwoDecimals
             </label>
           )}
           <button
+            onClick={handleDuplicate}
+            className="bg-background/90 backdrop-blur p-1.5 rounded-md hover:bg-primary hover:text-primary-foreground transition-colors"
+            title="Duplicate dish"
+          >
+            <Copy className="h-4 w-4" />
+          </button>
+          <button
             onClick={() => setShowDeleteDialog(true)}
             className="bg-background/90 backdrop-blur p-1.5 rounded-md hover:bg-destructive hover:text-destructive-foreground transition-colors"
           >

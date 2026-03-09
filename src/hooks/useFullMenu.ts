@@ -101,7 +101,7 @@ export const useFullMenu = (
       // Apply any locally buffered updates
       parsed = applyBufferedUpdates(parsed);
       
-      console.log('[useFullMenu] Menu fetched and updates applied');
+      logger.debug('[useFullMenu] Menu fetched and updates applied');
       
       setData(parsed);
       queryClient.setQueryData(['full-menu', restaurantId], parsed);

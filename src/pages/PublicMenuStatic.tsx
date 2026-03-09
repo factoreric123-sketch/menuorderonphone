@@ -313,7 +313,29 @@ const PublicMenuStatic = ({ restaurant, categories, onCategoryChange, tableQrCod
         businessHours={restaurant?.business_hours}
       />
 
-      {/* Category & Subcategory Navigation */}
+      {/* Search Bar */}
+      <div className="px-4 py-3 bg-background border-b border-border">
+        <div className="relative max-w-md mx-auto">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search dishes..."
+            className="pl-9 pr-9 rounded-full bg-muted/50 border-border"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Category & Subcategory Navigation — hidden during search */}
+      {!searchQuery && (
       <div className="z-40 bg-background border-b border-border">
         <div className="flex items-center justify-between">
           {categoryNames.length > 0 && activeCategoryName && (
@@ -387,6 +409,7 @@ const PublicMenuStatic = ({ restaurant, categories, onCategoryChange, tableQrCod
           />
         )}
       </div>
+      )}
 
       {/* Main Content - Progressive Render */}
       <main>

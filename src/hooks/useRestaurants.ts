@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Theme } from "@/lib/types/theme";
 import { generateUUID } from "@/lib/utils/uuid";
+import { useAuth } from "@/contexts/AuthContext";
 import { logger } from "@/lib/logger";
 
 export interface Restaurant {
@@ -46,12 +47,8 @@ export interface Restaurant {
 }
 
 export const useRestaurants = () => {
-  const { data } = useQuery({
-    queryKey: ['auth-session'],
-    queryFn: async () => supabase.auth.getSession(),
-  });
-
-  const userId = data?.data?.session?.user?.id;
+  const { user } = useAuth();
+  const userId = user?.id;
 
   return useQuery({
     queryKey: ["restaurants", userId],
@@ -240,12 +237,8 @@ export const useCreateRestaurant = () => {
 
 export const useUpdateRestaurant = () => {
   const queryClient = useQueryClient();
-  const { data: sessionData } = useQuery({
-    queryKey: ['auth-session'],
-    queryFn: async () => supabase.auth.getSession(),
-  });
-  
-  const userId = sessionData?.data?.session?.user?.id;
+  const { user } = useAuth();
+  const userId = user?.id;
 
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Restaurant> }) => {

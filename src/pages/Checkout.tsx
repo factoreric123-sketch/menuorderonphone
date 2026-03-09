@@ -125,9 +125,21 @@ const Checkout = () => {
                 <span className="font-semibold text-foreground">${(getItemTotal(item) / 100).toFixed(2)}</span>
               </div>
             ))}
-            <div className="p-3 flex justify-between">
+            {taxRate > 0 && (
+              <>
+                <div className="p-3 flex justify-between text-sm text-muted-foreground">
+                  <span>Subtotal</span>
+                  <span>${(totalCents / 100).toFixed(2)}</span>
+                </div>
+                <div className="p-3 flex justify-between text-sm text-muted-foreground border-t border-border">
+                  <span>Tax ({(taxRate * 100).toFixed(1)}%)</span>
+                  <span>${(taxCents / 100).toFixed(2)}</span>
+                </div>
+              </>
+            )}
+            <div className="p-3 flex justify-between border-t border-border">
               <span className="font-bold text-foreground">Total</span>
-              <span className="font-bold text-foreground text-lg">${(totalCents / 100).toFixed(2)}</span>
+              <span className="font-bold text-foreground text-lg">${(grandTotalCents / 100).toFixed(2)}</span>
             </div>
           </div>
         </div>

@@ -254,7 +254,7 @@ export const useFullMenu = (
     }
 
     // PRIORITY 3: Fetch from database
-    console.log('[useFullMenu] No cache, fetching from database');
+    logger.debug('[useFullMenu] No cache, fetching from database');
     fetchMenu();
   }, [restaurantId, cacheKey, fetchMenu, useLocalStorageCache, queryClient, applyBufferedUpdates]);
 

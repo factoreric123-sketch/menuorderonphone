@@ -43,6 +43,7 @@ const SortableDishInner = ({ dish, subcategoryId, restaurantId, forceTwoDecimals
   });
   const updateDish = useUpdateDish();
   const deleteDish = useDeleteDish();
+  const createDish = useCreateDish();
   const uploadImage = useImageUpload();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showCropModal, setShowCropModal] = useState(false);

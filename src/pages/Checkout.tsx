@@ -61,6 +61,7 @@ const Checkout = () => {
     }
 
     setSubmitting(true);
+    setOrderError(null);
 
     try {
       const orderItems = items.map((item) => ({
@@ -96,7 +97,13 @@ const Checkout = () => {
       }
     } catch (err: any) {
       console.error('Order error:', err);
-      toast.error(err.message || 'Failed to place order. Please try again.');
+      const message = err?.message?.includes('fetch')
+        ? 'Network error. Please check your connection and try again.'
+        : err?.message?.includes('429')
+        ? 'Too many requests. Please wait a moment and try again.'
+        : err?.message || 'Failed to place order. Please try again.';
+      setOrderError(message);
+      toast.error(message);
     } finally {
       setSubmitting(false);
     }

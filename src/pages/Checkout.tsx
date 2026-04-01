@@ -18,6 +18,7 @@ const Checkout = () => {
   const [notes, setNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'pay_at_table' | 'stripe'>('pay_at_table');
   const [submitting, setSubmitting] = useState(false);
+  const [orderError, setOrderError] = useState<string | null>(null);
   const [taxRate, setTaxRate] = useState(0);
 
   // Fetch restaurant tax rate
@@ -60,6 +61,7 @@ const Checkout = () => {
     }
 
     setSubmitting(true);
+    setOrderError(null);
 
     try {
       const orderItems = items.map((item) => ({
@@ -95,7 +97,13 @@ const Checkout = () => {
       }
     } catch (err: any) {
       console.error('Order error:', err);
-      toast.error(err.message || 'Failed to place order. Please try again.');
+      const message = err?.message?.includes('fetch')
+        ? 'Network error. Please check your connection and try again.'
+        : err?.message?.includes('429')
+        ? 'Too many requests. Please wait a moment and try again.'
+        : err?.message || 'Failed to place order. Please try again.';
+      setOrderError(message);
+      toast.error(message);
     } finally {
       setSubmitting(false);
     }
@@ -190,6 +198,16 @@ const Checkout = () => {
             </Label>
           </RadioGroup>
         </div>
+
+        {/* Error with retry */}
+        {orderError && (
+          <div className="rounded-xl border border-destructive/50 bg-destructive/10 p-4 space-y-2">
+            <p className="text-sm text-destructive font-medium">{orderError}</p>
+            <Button variant="outline" size="sm" onClick={handleSubmit} disabled={submitting}>
+              Try Again
+            </Button>
+          </div>
+        )}
 
         {/* Submit */}
         <Button

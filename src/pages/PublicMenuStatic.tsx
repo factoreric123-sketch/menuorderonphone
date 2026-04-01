@@ -64,7 +64,14 @@ const PublicMenuStatic = ({ restaurant, categories, onCategoryChange, tableQrCod
   const [filterOpen, setFilterOpen] = useState(false);
   const [filtersReady, setFiltersReady] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const subcategoryRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+
+  // Debounce search input by 200ms
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 200);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
   
   // Single dish detail dialog state - lifted from MenuGrid
   const [selectedDish, setSelectedDish] = useState<DishDetail | null>(null);
@@ -136,8 +143,8 @@ const PublicMenuStatic = ({ restaurant, categories, onCategoryChange, tableQrCod
   // Filter dishes based on selections
   // Search across ALL categories
   const searchResults = useMemo(() => {
-    if (!searchQuery.trim()) return null;
-    const q = searchQuery.toLowerCase();
+    if (!debouncedSearch.trim()) return null;
+    const q = debouncedSearch.toLowerCase();
     const results: (Dish & { available?: boolean; _subcategoryName?: string })[] = [];
     categories?.forEach((cat: any) => {
       cat.subcategories?.forEach((sub: any) => {
@@ -152,7 +159,7 @@ const PublicMenuStatic = ({ restaurant, categories, onCategoryChange, tableQrCod
       });
     });
     return results;
-  }, [searchQuery, categories]);
+  }, [debouncedSearch, categories]);
 
   const getFilteredDishes = useCallback(
     (dishesToFilter: Dish[]) => {

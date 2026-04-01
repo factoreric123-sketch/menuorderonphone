@@ -64,7 +64,14 @@ const PublicMenuStatic = ({ restaurant, categories, onCategoryChange, tableQrCod
   const [filterOpen, setFilterOpen] = useState(false);
   const [filtersReady, setFiltersReady] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const subcategoryRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+
+  // Debounce search input by 200ms
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 200);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
   
   // Single dish detail dialog state - lifted from MenuGrid
   const [selectedDish, setSelectedDish] = useState<DishDetail | null>(null);

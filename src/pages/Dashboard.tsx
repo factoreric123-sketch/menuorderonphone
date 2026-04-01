@@ -209,11 +209,19 @@ const Dashboard = () => {
           </div>
         )}
 
-        {!isLoading && restaurants.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">
-              You haven't created any restaurants yet. Click the card above to get started!
+      {!isLoading && restaurants.length === 0 && (
+          <div className="text-center py-16 space-y-4">
+            <div className="mx-auto h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center">
+              <Plus className="h-10 w-10 text-primary" />
+            </div>
+            <h2 className="text-xl font-semibold text-foreground">Welcome{user?.email ? `, ${user.email.split('@')[0]}` : ''}!</h2>
+            <p className="text-muted-foreground max-w-md mx-auto">
+              You haven't created any restaurants yet. Create your first restaurant to start building your digital menu and accepting orders.
             </p>
+            <Button onClick={() => setShowCreateModal(true)} size="lg" className="mt-2">
+              <Plus className="h-5 w-5 mr-2" />
+              Create Your First Restaurant
+            </Button>
           </div>
         )}
       </main>

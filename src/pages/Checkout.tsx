@@ -18,6 +18,7 @@ const Checkout = () => {
   const [notes, setNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'pay_at_table' | 'stripe'>('pay_at_table');
   const [submitting, setSubmitting] = useState(false);
+  const [orderError, setOrderError] = useState<string | null>(null);
   const [taxRate, setTaxRate] = useState(0);
 
   // Fetch restaurant tax rate

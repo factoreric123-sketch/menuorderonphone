@@ -199,6 +199,16 @@ const Checkout = () => {
           </RadioGroup>
         </div>
 
+        {/* Error with retry */}
+        {orderError && (
+          <div className="rounded-xl border border-destructive/50 bg-destructive/10 p-4 space-y-2">
+            <p className="text-sm text-destructive font-medium">{orderError}</p>
+            <Button variant="outline" size="sm" onClick={handleSubmit} disabled={submitting}>
+              Try Again
+            </Button>
+          </div>
+        )}
+
         {/* Submit */}
         <Button
           onClick={handleSubmit}

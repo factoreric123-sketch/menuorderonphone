@@ -143,8 +143,8 @@ const PublicMenuStatic = ({ restaurant, categories, onCategoryChange, tableQrCod
   // Filter dishes based on selections
   // Search across ALL categories
   const searchResults = useMemo(() => {
-    if (!searchQuery.trim()) return null;
-    const q = searchQuery.toLowerCase();
+    if (!debouncedSearch.trim()) return null;
+    const q = debouncedSearch.toLowerCase();
     const results: (Dish & { available?: boolean; _subcategoryName?: string })[] = [];
     categories?.forEach((cat: any) => {
       cat.subcategories?.forEach((sub: any) => {
@@ -159,7 +159,7 @@ const PublicMenuStatic = ({ restaurant, categories, onCategoryChange, tableQrCod
       });
     });
     return results;
-  }, [searchQuery, categories]);
+  }, [debouncedSearch, categories]);
 
   const getFilteredDishes = useCallback(
     (dishesToFilter: Dish[]) => {

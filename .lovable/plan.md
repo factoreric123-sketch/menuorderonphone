@@ -1,55 +1,78 @@
 
+# Production Readiness Improvements — Round 5
 
-# Admin Portal for Order Management
+Based on the security scan (35 findings), code review, and competitor analysis, here are the highest-impact improvements remaining.
 
-## Current State
+---
 
-The app already has a **Kitchen ticket board** (`/dashboard/:restaurantId/tickets`) focused on real-time station work. But there's no proper admin view for restaurant owners to manage all orders holistically -- seeing payment status, order history, cancelling/refunding, filtering by date, etc.
+## 1. Fix 35 Supabase Security Warnings (Critical)
 
-## What to Build
+The security scan found serious issues that must be fixed before any real deployment:
 
-A new **Orders Admin page** at `/dashboard/:restaurantId/orders` with two views:
+- **Overly permissive RLS policies**: Some tables have `WITH CHECK (true)` on INSERT/UPDATE/DELETE — any anonymous user could write data
+- **Anonymous access on sensitive tables**: `orders`, `order_items`, `subscriptions`, `profiles` allow anonymous access via policies targeting the `anon` role
+- **Functions missing `search_path`**: Multiple database functions don't set `search_path`, which is a privilege escalation vector
+- **Materialized view exposed in API**: A materialized view is accessible via the public API
 
-### 1. Active Orders Panel (default view)
-- Real-time list of all non-completed orders in a clean table layout
-- Columns: Order #, Guest Name, Table, Items summary, Total, Payment Status, Order Status, Time, Actions
-- Actions per order: View details (expand), Advance status, Cancel, Print
-- Color-coded payment status badges (paid/unpaid/refunded)
-- Auto-refreshes via Supabase Realtime (reuses the same pattern as Kitchen.tsx)
+**Changes:**
+- Create a migration that tightens all RLS policies to require `auth.uid()` where appropriate
+- Set `search_path = public` on all custom functions
+- Revoke API access from the materialized view
+- Keep public SELECT on `dishes`, `categories`, `subcategories` (needed for public menus) but restrict write operations to authenticated owners only
 
-### 2. Order History Tab
-- All completed/cancelled orders in a searchable, filterable table
-- Date range filter, status filter, payment status filter
-- Expandable rows showing full item details
-- Summary stats at top: total orders today, total revenue, average order value
+---
 
-### 3. Order Detail Expandable Row
-- Full item list with quantities, options, modifiers, special instructions
-- Guest info (name, phone, table)
-- Timeline of status changes
-- Payment info (method, status, stripe ID if applicable)
-- Actions: mark paid (for pay-at-table), cancel, reprint
+## 2. Add Google OAuth Sign-In
 
-### Navigation
-- Add an **"Orders"** button to `RestaurantCard` on the Dashboard (alongside existing "Ticket Dashboard")
-- Add the route `/dashboard/:restaurantId/orders` to App.tsx
-- Link from the Kitchen board header to the Orders admin and vice versa
+Competitors like GloriaFood and MenuDrive all offer social login. Currently only email/password is supported.
 
-## Files to Create/Modify
+**Changes:**
+- Add a "Sign in with Google" button to `Auth.tsx`
+- Use `supabase.auth.signInWithOAuth({ provider: 'google' })` — no backend changes needed
+- Style consistently with existing auth form
 
-| File | Change |
-|------|--------|
-| `src/pages/OrdersAdmin.tsx` | **New** - Full orders management page with tabs (Active / History) |
-| `src/App.tsx` | Add route for `/dashboard/:restaurantId/orders` |
-| `src/components/RestaurantCard.tsx` | Add "Manage Orders" button |
-| `src/pages/Kitchen.tsx` | Add link to Orders Admin in header |
+---
 
-## Technical Approach
+## 3. Add Loading/Empty States to Dashboard
 
-- Reuse the same Supabase Realtime subscription pattern from Kitchen.tsx
-- Use the existing `Table`, `TableHeader`, `TableBody`, `TableRow`, `TableCell` UI components for the order list
-- Use `Tabs` component for Active/History switching
-- Use `Collapsible` for expandable order detail rows
-- Date filtering with `date-fns` (already installed)
-- No database changes needed -- all data is already in `orders` and `order_items` tables with proper RLS
+The dashboard has no empty state for new users and minimal loading feedback.
 
+**Changes:**
+- Add an onboarding empty state when `restaurants.length === 0` with a clear CTA to create first restaurant
+- Add skeleton loading for restaurant cards and stats
+- Show a welcome message with the user's email
+
+---
+
+## 4. Menu Search Improvement — Debounced Input
+
+The public menu search in `PublicMenuStatic.tsx` filters on every keystroke. On large menus this causes jank.
+
+**Changes:**
+- Add a 200ms debounce to the search input using a simple `useEffect` + `setTimeout` pattern
+- No new dependencies needed
+
+---
+
+## 5. Error Handling in Checkout Flow
+
+The checkout page (`Checkout.tsx`) invokes an edge function but has minimal error handling for network failures and no retry mechanism.
+
+**Changes:**
+- Add a retry button on order submission failure
+- Show specific error messages (network error vs. server error vs. rate limit)
+- Disable the submit button and show a spinner during submission (partially exists, needs polish)
+
+---
+
+## Technical Details
+
+| Area | Files Changed |
+|------|--------------|
+| Security (RLS) | New migration file |
+| Google OAuth | `src/pages/Auth.tsx` |
+| Dashboard UX | `src/pages/Dashboard.tsx` |
+| Search debounce | `src/pages/PublicMenuStatic.tsx` |
+| Checkout errors | `src/pages/Checkout.tsx` |
+
+Priority order: Security fixes (#1) > Google OAuth (#2) > Dashboard UX (#3) > Search (#4) > Checkout (#5)
